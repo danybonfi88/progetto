@@ -25,14 +25,14 @@ app.use(express.json());
 // MIDDLEWARE x SINGOLE ROTTE
 /* Express ti dà uno strumento chiamato Router che è essenzialmente una mini-app Express
 autonoma. Ogni file di route crea il suo router, ci registra i suoi endpoint, e lo esporta: */
-/* i  middleware delle singole rotte non vengono gestiti in questo file,ma inviati al router specifico per ognuna */
-app.use('/api/auth',    require('./routes/auth'));
+/* i  middleware delle singole rotte non vengono gestiti in questo file, ma inviati al router specifico per ognuna */
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/materie', require('./routes/materie'));
-app.use('/api/eventi',  require('./routes/eventi'));
-app.use('/api/files',   require('./routes/files'));
-app.use('/api/gruppi',  require('./routes/gruppi'));
-app.use('/api/quiz',    require('./routes/quiz'));
-app.use('/api/chat',    require('./routes/chat'));
+app.use('/api/eventi', require('./routes/eventi'));
+app.use('/api/files', require('./routes/files'));
+app.use('/api/gruppi', require('./routes/gruppi'));
+app.use('/api/quiz', require('./routes/quiz'));
+app.use('/api/chat',  require('./routes/chat'));
 
 
 // AVVIO SERVER
