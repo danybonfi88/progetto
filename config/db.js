@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 /* leggo il file.env e carico le variabili nell'oggetto process.env */
 dotenv.config();
 
+
 /* Un pool è sostanzialmente una scorta di connessioni già aperte che il server tiene pronte. Funziona così: */
 const pool = mysql.createPool({
   host:     process.env.DB_HOST,
@@ -15,6 +16,7 @@ const pool = mysql.createPool({
   waitForConnections: true, // se il pool (le connessioni) è pieno, aspetta invece di dare errore
   connectionLimit: 10, // stabilisce il massimo di connessioni contemporanee
 });
+
 
 
 /*

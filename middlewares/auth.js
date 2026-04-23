@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 /* leggo il file.env e carico le variabili nell'oggetto process.env */
 dotenv.config();
 
+
 // module è il "cancello" attraverso cui un file decide cosa vuole rendere disponibile agli altri
 module.exports = function authMiddleware(req, res, next) {
     // salvo l'header 'autorization' in una variabile, che contiene il jwt inviato dal front-end
