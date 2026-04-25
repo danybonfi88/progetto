@@ -117,5 +117,5 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// esporto il Router specifico di auth.js, rendendo questa rotta disponibile negli altri file
+// esporto il Router specifico di auth.js, rendendo questa rotta disponibile negli altri file (in modo da poterlo montare in server.js)
 module.exports = router;
