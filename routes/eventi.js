@@ -143,4 +143,5 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// esporto il Router specifico di eventi.js, rendendo questa rotta disponibile negli altri file (in modo da poterlo montare in server.js)
 module.exports = router;
