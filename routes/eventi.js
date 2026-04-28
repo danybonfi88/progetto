@@ -125,7 +125,7 @@ router.delete('/:id', async (req, res) => {
         'DELETE FROM eventi WHERE id = ? AND utente_id = ?',
         [req.params.id, req.user.id]
         );
-        // l'id della risorsa da aggiornare è preso dal parametro dinamico della query, l'id utente dalla req (ovvero quello verificato del JWT)
+        // l'id della risorsa da eliminare è preso dal parametro dinamico della query, l'id utente dalla req (ovvero quello verificato del JWT)
 
         // Qui a differenza della DELETE di materie lo controlli esplicitamente. Se affectedRows è 0 significa che non è stata eliminata
         // nessuna riga — o l'evento non esiste, o non appartiene all'utente loggato. In entrambi i casi rispondi con 404 Not Found.
