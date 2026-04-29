@@ -54,30 +54,50 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Nome obbligatorio' });
     }
 
+    // Creare un gruppo richiede due INSERT in sequenza:
+    /* 1. INSERT INTO gruppi → crea il gruppo
+    /* 2. INSERT INTO utenti_gruppi → aggiunge il creatore come admin
+    Il problema è: cosa succede se la prima va a buon fine ma la seconda fallisce? Il gruppo esiste nel database ma non ha nessun membro — nemmeno il creatore. È un dato corrotto, inutilizzabile.
+    La soluzione è la transazione. */
+    // Una transazione è un gruppo di operazioni che vengono trattate come una cosa sola. Vale la regola del tutto o niente:
+    /* se tutte le operazioni vanno a buon fine → COMMIT  (salva tutto)
+    /* se anche solo una fallisce → ROLLBACK (annulla tutto) */
+
+    // fin'ora si era usato db.query() -> prende automaticamente una connessione dal pool, esegue la query, e la rilascia
+    // db.getConnection() prende una connessione dal pool e te la consegna, senza rilasciarla automaticamente, cosicché le due insert vengano eseguite sulla stessa connessione
     const conn = await db.getConnection();
     try {
+        // apre la transazione -> da qui MySQL sa chele query successive fanno parte di un "gruppo", e non le salva finché non riceve il COMMIT
         await conn.beginTransaction();
 
+        // invece di db.query(), uso conn.query(), inserendo il nuovo elemento gruppo
         const [result] = await conn.query(
         'INSERT INTO gruppi (nome, descrizione, creatore_id) VALUES (?, ?, ?)',
-        [nome, descrizione || null, req.user.id]
+        [nome, descrizione || null, req.user.id] // req.user viene dal middleware di autenticazione!
         );
 
+        // sempre con conn.query(), inserisco ora il creatore come admin
         await conn.query(
         'INSERT INTO utenti_gruppi (utente_id, gruppo_id, ruolo) VALUES (?, ?, ?)',
-        [req.user.id, result.insertId, 'admin']
+        [req.user.id, result.insertId, 'admin'] // req.user viene dal middleware di autenticazione!
         );
 
+        // se entrabe le query sono andate a buon fine -> chiudo la transazione con conn.commit()
         await conn.commit();
 
+        // l'inserimento ha avuto successo -> 201 + infromazioni della nuova materia (insertId è l'id che MySQL ha assegnato alla nuova materia tramite AUTO_INCREMENT.)
         res.status(201).json({ id: result.insertId, nome, descrizione });
     
     // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
     } catch (err) {
+        // Se qualcosa è andato storto nel try, il catch esegue il rollback — annulla tutto quello che era 
+        // stato fatto dall'inizio della transazione. Il database torna esattamente com'era prima
         await conn.rollback();
         console.error(err);
         res.status(500).json({ error: 'Errore interno' });
-
+    
+    // alla fine di tutto, rilascio e termino la connessione con conn.release()
+    // il blocco finally viene eseguito sempre, sia che try vada a buon fine, sia che finisca nel catch
     } finally {
         conn.release();
     }
@@ -94,36 +114,47 @@ router.post('/:id/membri', async (req, res) => {
         return res.status(400).json({ error: 'Email obbligatoria' });
     }
 
+    // Questa route è diversa da tutte le precedenti perché prima di fare l'INSERT esegue tre controlli in sequenza. 
+    // Ogni controllo è un possibile punto di blocco con il suo codice di errore.
     try {
+
+        // estraggo il ruolo dell'utente, in base al suo id (derivato dal middleware di autenticazione) e all'id gruppo preso dall'url
         const [admin] = await db.query(
         'SELECT ruolo FROM utenti_gruppi WHERE gruppo_id = ? AND utente_id = ?',
         [req.params.id, req.user.id]
         );
-
+        // 1 CONTROLLO - verifico che l'utente che sta facendo la richiesta fa parte del gruppo, e che il suo ruolo sia admin
         if (admin.length === 0 || admin[0].ruolo !== 'admin') {
-        return res.status(403).json({ error: 'Solo gli admin possono aggiungere membri' });
+            // se non lo è -> 403: Forbidden
+            return res.status(403).json({ error: 'Solo gli admin possono aggiungere membri' });
         }
 
+        // estraggo l'id utente corrispondente alla mail passata nel body 
         const [utenti] = await db.query(
         'SELECT id FROM utenti WHERE email = ?',
         [email]
         );
-
+        // 2 CONTROLLO - verifico che l'utente da aggiungere esiste
+        // Cerchi l'utente da aggiungere tramite email — è più pratico che passare l'id direttamente, perché l'admin conosce l'email del compagno ma probabilmente non il suo id nel database.
         if (utenti.length === 0) {
-        return res.status(404).json({ error: 'Utente non trovato' });
+            // se non esiste -> 404: Not found
+            return res.status(404).json({ error: 'Utente non trovato' });
         }
 
+        // creo una variabile d'appoggio, a cui assegno l'id dell'utente che ho estratto prima
         const nuovoMembro = utenti[0].id;
-
+        // estraggo ora l'id utente da utente_gruppi, per verificare non solo che l'utente esista, ma che non faccia gia parte del gruppo
         const [esistente] = await db.query(
         'SELECT utente_id FROM utenti_gruppi WHERE gruppo_id = ? AND utente_id = ?',
         [req.params.id, nuovoMembro]
         );
-
+        // 3 CONTROLLO - se le righe estratte sono > 0 (la SELECT ha ritornato un risultato), l'utente è gia presente nel gruppo
         if (esistente.length > 0) {
-        return res.status(409).json({ error: 'Utente già nel gruppo' });
+            // se è gia presente -> 409: Conflict
+            return res.status(409).json({ error: 'Utente già nel gruppo' });
         }
 
+        // infine, dopo tutti i controlli, inserisco in utenti_gruppi, il nuovo utente con il ruolo 'membro'
         await db.query(
         'INSERT INTO utenti_gruppi (utente_id, gruppo_id, ruolo) VALUES (?, ?, ?)',
         [nuovoMembro, req.params.id, 'membro']
