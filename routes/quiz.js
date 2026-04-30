@@ -1,5 +1,6 @@
 // IMPORTO LE LIBRERIE
-/* express */const express = require('express');
+/* express */
+const express = require('express');
 /* db: importa il file db.js, salvato in un'altra cartella del progetto*/
 const db = require('../config/db');
 /* auth: importa il file auth.js, salvato in un'altra cartella del progetto*/
@@ -36,7 +37,7 @@ router.get('/', async (req, res) => {
         `, [req.user.id]); // req.user viene dal middleware di autenticazione!
 
         // restituisco il risulato della query (res.json() usa 200 di default)
-            res.json(rows);
+        res.json(rows);
         
     // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
     } catch (err) {
