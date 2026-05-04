@@ -4,7 +4,7 @@ const express = require('express');
 /* db: importa il file db.js, salvato in un'altra cartella del progetto*/
 const db = require('../config/db');
 /* auth: importa il file auth.js, salvato in un'altra cartella del progetto*/
-const auth = require('../middleware/auth');
+const auth = require('../middlewares/auth');
 /* router: creo il Router specifico di questa rotta, su cui registro gli endpoint specifici*/
 const router = express.Router();
 
@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
         );
 
 
-        // 2. Recupera la cronologia per darla come contesto a Claude
+        // 2. Recupera la cronologia per darla come contesto a Groq
         // estraggo testo e mittente dei messaggi, riferiti all'utente che sta facendo la richiesta, ordinati per tempo crescente
         const [cronologia] = await db.query(
         `SELECT testo, mittente FROM messaggi
@@ -65,7 +65,7 @@ router.post('/', async (req, res) => {
 
 
         // 3. Trasforma la cronologia nel formato che si aspetta l'API: per ogni messaggio estratto, lo conmverto nel formato richiesto
-        // L'API di Claude si aspetta i messaggi in un formato preciso — un array di oggetti con role e content
+        // L'API di Groq si aspetta i messaggi in un formato preciso — un array di oggetti con role e content
         
         // map() è un metodo degli arrei che trasforma ogni elemento in qualcosa di diverso, producendo un array della stessa lunghezza dell'originale
         /* parametri del map(): elemento => trasformazione - arrayOriginale.map(elemento => trasformazione)
@@ -78,40 +78,40 @@ router.post('/', async (req, res) => {
         }));
 
         
-        // 4. Chiama l'API di Claude
+        // 4. Chiama l'API di Groq
         /* 
         METHOD: post
         HEADERS:
         - content-type: indica il tipo del body inviato - JSON
-        - x-api-key: la chiave segreta che ti autentica presso Anthropic. Viene da process.env.ANTHROPIC_API_KEY
-        - anthropic-version: indica la versione dellAPI da usare
+        - authorization: la chiave segreta che ti autentica presso Groq (API). Viene da process.env.ANTHROPIC_API_KEY
         BODY:
         - model: modello di claude da usare - claude-haiku-4-5-20251001 è il più veloce ed economico, perfetto per un chatbot.
         - max_tokens: lunghezza massima della risposta. 1024 è sufficiente per risposte di studio.
         - system: il prompt di sistema. È una stringa che definisce il comportamento del bot — in questo caso lo istruisci a comportarsi da assistente allo studio. 
         - messages: l'array che hai costruito al passo precedente, con tutta la cronologia.
         */
-        const risposta = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type':      'application/json',
-            'x-api-key':         process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-            model:      'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            system:     'Sei un assistente per lo studio. Aiuta lo studente in modo chiaro e conciso.',
-            messages:   messaggi
-        })
+        const risposta = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model:      'llama-3.1-8b-instant',
+                max_tokens: 1024,
+                messages:   [
+                { role: 'system', content: 'Sei un assistente per lo studio. Aiuta lo studente in modo chiaro e conciso.' },
+                ...messaggi  
+                ]
+            })
         });
 
         // aspetto la risposta della fatch appena eseguita
         const data = await risposta.json();
         // estraggo il contenuto della risposta
-        /* data.content è un array — in teoria Claude potrebbe rispondere con più blocchi di contenuto, ma nella pratica per risposte testuali è sempre un array con un solo elemento. 
-        Con [0].text prendi il testo della risposta. */
-        const testoBot = data.content[0].text;
+        /* data.content è un array — in teoria Groq potrebbe rispondere con più blocchi di contenuto, ma nella pratica per risposte testuali è sempre un array con un solo elemento. 
+        Con [0].message.content prendi il testo della risposta. */
+        const testoBot = data.choices[0].message.content;
 
 
         // 5. Salva la risposta del bot nel DB

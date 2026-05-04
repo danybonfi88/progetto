@@ -189,9 +189,7 @@ router.delete('/:id/membri/:utenteId', async (req, res) => {
         }
         
         // se la SELECT ottiene un risultato e il ruolo è = 'admin', allora posso eliminare la risorsa:
-        // 1) elimino il gruppo per id
-        // 2) elimino l'utente dal gruppo (lo rimuovo dal gruppo), controllando che non sia anch'esso un admin
-        await db.query('DELETE FROM gruppi WHERE id = ?', [req.params.id]);
+        // elimino l'utente dal gruppo (lo rimuovo dal gruppo), controllando che non sia anch'esso un admin
         await db.query(
         'DELETE FROM utenti_gruppi WHERE gruppo_id = ? AND utente_id = ? AND ruolo != ?',
         [req.params.id, req.params.utenteId, 'admin']

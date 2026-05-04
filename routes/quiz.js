@@ -4,7 +4,7 @@ const express = require('express');
 /* db: importa il file db.js, salvato in un'altra cartella del progetto*/
 const db = require('../config/db');
 /* auth: importa il file auth.js, salvato in un'altra cartella del progetto*/
-const auth = require('../middleware/auth');
+const auth = require('../middlewares/auth');
 /* router: creo il Router specifico di questa rotta, su cui registro gli endpoint specifici*/
 const router = express.Router();
 
