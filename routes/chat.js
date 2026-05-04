@@ -47,26 +47,50 @@ router.post('/', async (req, res) => {
 
     try {
         // 1. Salva il messaggio dell'utente nel DB
+        // lo salvo subito, perchè dal prossimo passo recupero tutta la cronologia, incluso questo messaggi, per darla in pasto a claude
         await db.query(
         'INSERT INTO messaggi (utente_id, testo, mittente) VALUES (?, ?, ?)',
-        [req.user.id, testo, 'user']
+        [req.user.id, testo, 'user'] // req.user viene dal middleware di autenticazione!
         );
 
+
         // 2. Recupera la cronologia per darla come contesto a Claude
+        // estraggo testo e mittente dei messaggi, riferiti all'utente che sta facendo la richiesta, ordinati per tempo crescente
         const [cronologia] = await db.query(
         `SELECT testo, mittente FROM messaggi
         WHERE utente_id = ?
         ORDER BY timestamp ASC`,
-        [req.user.id]
+        [req.user.id] // req.user viene dal middleware di autenticazione!
         );
 
-        // 3. Trasforma la cronologia nel formato che si aspetta l'API
+
+        // 3. Trasforma la cronologia nel formato che si aspetta l'API: per ogni messaggio estratto, lo conmverto nel formato richiesto
+        // L'API di Claude si aspetta i messaggi in un formato preciso — un array di oggetti con role e content
+        
+        // map() è un metodo degli arrei che trasforma ogni elemento in qualcosa di diverso, producendo un array della stessa lunghezza dell'originale
+        /* parametri del map(): elemento => trasformazione - arrayOriginale.map(elemento => trasformazione)
+        Per ogni elemento dell'array originale, esegui la trasformazione e il risultato va nel nuovo array. L'array originale non viene modificato. */
         const messaggi = cronologia.map(m => ({
-        role:    m.mittente === 'user' ? 'user' : 'assistant',
-        content: m.testo
+        role:    m.mittente === 'user' ? 'user' : 'assistant', // role è il mittente del messaggio (ruolo)
+        /* nel nostro  db, come ruolo dei messaggi usiamo 'user' e 'bot. CLaude però utilizza e capisce solo 'user' e 'assistant'
+        Leggi così: "se mittente è 'user' allora usa 'user', altrimenti usa 'assistant'". In pratica stai rinominando 'bot' in 'assistant'.*/
+        content: m.testo // content è il testo del messaggio
         }));
 
+        
         // 4. Chiama l'API di Claude
+        /* 
+        METHOD: post
+        HEADERS:
+        - content-type: indica il tipo del body inviato - JSON
+        - x-api-key: la chiave segreta che ti autentica presso Anthropic. Viene da process.env.ANTHROPIC_API_KEY
+        - anthropic-version: indica la versione dellAPI da usare
+        BODY:
+        - model: modello di claude da usare - claude-haiku-4-5-20251001 è il più veloce ed economico, perfetto per un chatbot.
+        - max_tokens: lunghezza massima della risposta. 1024 è sufficiente per risposte di studio.
+        - system: il prompt di sistema. È una stringa che definisce il comportamento del bot — in questo caso lo istruisci a comportarsi da assistente allo studio. 
+        - messages: l'array che hai costruito al passo precedente, con tutta la cronologia.
+        */
         const risposta = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -82,16 +106,23 @@ router.post('/', async (req, res) => {
         })
         });
 
+        // aspetto la risposta della fatch appena eseguita
         const data = await risposta.json();
+        // estraggo il contenuto della risposta
+        /* data.content è un array — in teoria Claude potrebbe rispondere con più blocchi di contenuto, ma nella pratica per risposte testuali è sempre un array con un solo elemento. 
+        Con [0].text prendi il testo della risposta. */
         const testoBot = data.content[0].text;
+
 
         // 5. Salva la risposta del bot nel DB
         await db.query(
         'INSERT INTO messaggi (utente_id, testo, mittente) VALUES (?, ?, ?)',
-        [req.user.id, testoBot, 'bot']
+        [req.user.id, testoBot, 'bot'] // req.user viene dal middleware di autenticazione!
         );
 
+
         // 6. Risponde al client
+        // // restituisco la risposta dell'API CLaude al client (res.json() usa 200 di default)
         res.json({ risposta: testoBot });
     
     // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
