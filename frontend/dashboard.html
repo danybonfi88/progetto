@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<!--
+  dashboard.html
+  Pagina principale dell'app — mostrata dopo il login.
+  Contiene la navbar di navigazione e una panoramica
+  degli elementi più importanti: prossimi eventi, file
+  recenti e accesso rapido alle altre sezioni.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Dashboard</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/dashboard.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR
+       La stessa navbar è presente in tutte le pagine tranne
+       index.html. Il link alla pagina corrente ha la classe
+       .active aggiunta via JS in base all'URL corrente -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+
+      <!-- Brand / logo -->
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+
+      <!-- Link di navigazione -->
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+
+      <!-- Avatar utente con menu dropdown -->
+      <div class="navbar-user">
+        <!-- Le iniziali dell'utente vengono inserite via JS
+             leggendo il nome dal localStorage -->
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <!-- Dropdown nascosto di default, mostrato al click
+             sull'avatar -->
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <!-- Nome utente — inserito via JS -->
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <!-- Logout — rimuove il token e torna al login -->
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">
+            Esci
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+
+  <!-- CONTENUTO PRINCIPALE -->
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE PAGINA -->
+      <div class="page-header">
+        <!-- Il nome utente viene inserito via JS -->
+        <h1 class="page-title">Ciao, <span id="user-nome"></span> 👋</h1>
+        <p class="page-subtitle">Ecco un riepilogo di quello che hai in programma.</p>
+      </div>
+
+
+      <!-- CARD STATISTICHE
+           Quattro card che mostrano un conteggio rapido delle
+           risorse dell'utente — caricate via JS all'avvio -->
+      <div class="stats-grid">
+
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-eventi">—</div>
+            <div class="stat-label">Prossimi eventi</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📁</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-files">—</div>
+            <div class="stat-label">File salvati</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-quiz">—</div>
+            <div class="stat-label">Quiz creati</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-body">
+            <div class="stat-value" id="stat-gruppi">—</div>
+            <div class="stat-label">Gruppi</div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- GRIGLIA PRINCIPALE
+           Due colonne affiancate: prossimi eventi a sinistra,
+           file recenti a destra. Su mobile diventano una colonna -->
+      <div class="dashboard-grid">
+
+        <!-- PROSSIMI EVENTI -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Prossimi eventi</h2>
+            <a href="calendario.html" class="btn btn-ghost btn-sm">
+              Vedi tutti →
+            </a>
+          </div>
+          <div class="card-body">
+            <!-- Lo spinner è mostrato mentre la chiamata API è in corso.
+                 Viene sostituito dalla lista eventi quando arrivano i dati -->
+            <div class="flex-center" id="eventi-loading">
+              <div class="spinner spinner-lg"></div>
+            </div>
+            <!-- Lista eventi — popolata via JS -->
+            <ul class="eventi-list" id="eventi-list" hidden></ul>
+            <!-- Stato vuoto — mostrato se non ci sono eventi -->
+            <div class="empty-state" id="eventi-empty" hidden>
+              <div class="empty-state-icon">📅</div>
+              <div class="empty-state-title">Nessun evento in programma</div>
+              <div class="empty-state-text">
+                Vai al calendario per aggiungerne uno.
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- FILE RECENTI -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">File recenti</h2>
+            <a href="drive.html" class="btn btn-ghost btn-sm">
+              Vedi tutti →
+            </a>
+          </div>
+          <div class="card-body">
+            <div class="flex-center" id="files-loading">
+              <div class="spinner spinner-lg"></div>
+            </div>
+            <ul class="files-list" id="files-list" hidden></ul>
+            <div class="empty-state" id="files-empty" hidden>
+              <div class="empty-state-icon">📁</div>
+              <div class="empty-state-title">Nessun file caricato</div>
+              <div class="empty-state-text">
+                Vai al drive per caricare i tuoi appunti.
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+
+      <!-- ACCESSO RAPIDO
+           Bottoni per raggiungere le sezioni principali
+           con un click dalla dashboard -->
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Accesso rapido</h2>
+        </div>
+        <div class="quick-actions">
+
+          <a href="calendario.html" class="quick-action">
+            <span class="quick-action-icon">📅</span>
+            <span class="quick-action-label">Calendario</span>
+          </a>
+
+          <a href="drive.html" class="quick-action">
+            <span class="quick-action-icon">📁</span>
+            <span class="quick-action-label">Drive</span>
+          </a>
+
+          <a href="gruppi.html" class="quick-action">
+            <span class="quick-action-icon">👥</span>
+            <span class="quick-action-label">Gruppi</span>
+          </a>
+
+          <a href="quiz.html" class="quick-action">
+            <span class="quick-action-icon">🧠</span>
+            <span class="quick-action-label">Quiz</span>
+          </a>
+
+          <a href="chat.html" class="quick-action">
+            <span class="quick-action-icon">🤖</span>
+            <span class="quick-action-label">Chat AI</span>
+          </a>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+
+</body>
+</html>

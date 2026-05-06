@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--
+  index.html
+  Pagina di login e registrazione — punto di ingresso dell'app.
+  È l'unica pagina accessibile senza token JWT: tutte le altre
+  controllano il token all'avvio e reindirizzano qui se mancante.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport garantisce che la pagina si adatti correttamente
+       agli schermi mobile, senza zoom automatico del browser -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Accedi</title>
+
+  <!-- base.css prima di components.css — contiene le variabili
+       CSS usate dai componenti -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/auth.css">
+</head>
+
+<body>
+
+  <!-- CONTENITORE PRINCIPALE -->
+  <!-- divide la pagina in due colonne: sinistra decorativa,
+       destra con il form. Su mobile la colonna sinistra sparisce -->
+  <div class="auth-layout">
+
+    <!-- COLONNA SINISTRA — decorativa, nascosta su mobile -->
+    <div class="auth-left">
+      <div class="auth-left-content">
+
+        <!-- Logo e nome app -->
+        <div class="auth-brand">
+          <span class="auth-brand-icon">📚</span>
+          <span class="auth-brand-name">StudyApp</span>
+        </div>
+
+        <!-- Titolo e sottotitolo -->
+        <h1 class="auth-left-title">
+          Il tuo spazio<br>per studiare meglio
+        </h1>
+        <p class="auth-left-subtitle">
+          Calendario, appunti, quiz e un assistente AI —
+          tutto in un unico posto.
+        </p>
+
+        <!-- Feature list — elenca le funzionalità principali -->
+        <ul class="auth-features">
+          <li class="auth-feature">
+            <span class="auth-feature-icon">📅</span>
+            <span>Calendario verifiche e compiti</span>
+          </li>
+          <li class="auth-feature">
+            <span class="auth-feature-icon">📁</span>
+            <span>Drive per i tuoi appunti</span>
+          </li>
+          <li class="auth-feature">
+            <span class="auth-feature-icon">🧠</span>
+            <span>Quiz per prepararsi alle verifiche</span>
+          </li>
+          <li class="auth-feature">
+            <span class="auth-feature-icon">🤖</span>
+            <span>Assistente AI per lo studio</span>
+          </li>
+        </ul>
+
+      </div>
+    </div>
+
+    <!-- COLONNA DESTRA — contiene i form di login e registrazione -->
+    <div class="auth-right">
+      <div class="auth-box">
+
+        <!-- TAB LOGIN / REGISTRAZIONE
+             Due tab per switchare tra i due form senza cambiare pagina.
+             La tab attiva viene gestita via JS aggiungendo la classe .active -->
+        <div class="auth-tabs">
+          <!-- data-tab è un attributo custom che JS usa per capire
+               quale form mostrare al click -->
+          <button class="auth-tab active" data-tab="login">
+            Accedi
+          </button>
+          <button class="auth-tab" data-tab="register">
+            Registrati
+          </button>
+        </div>
+
+
+        <!-- FORM LOGIN -->
+        <!-- id="form-login" è usato da JS per mostrare/nascondere
+             il form in base alla tab selezionata -->
+        <form id="form-login" class="auth-form" novalidate>
+          <!-- novalidate disabilita la validazione nativa del browser —
+               la gestiamo noi via JS per avere messaggi personalizzati -->
+
+          <div class="form-group">
+            <label class="form-label" for="login-email">Email</label>
+            <input
+              class="form-control"
+              type="email"
+              id="login-email"
+              placeholder="mario@example.com"
+              autocomplete="email"
+              required
+            >
+            <!-- Il messaggio di errore è vuoto di default e viene
+                 popolato via JS in caso di validazione fallita -->
+            <span class="form-error" id="login-email-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <div class="input-password-wrap">
+              <!-- type="password" nasconde i caratteri.
+                   JS lo cambia in type="text" quando l'utente
+                   clicca sull'icona per mostrare la password -->
+              <input
+                class="form-control"
+                type="password"
+                id="login-password"
+                placeholder="••••••••"
+                autocomplete="current-password"
+                required
+              >
+              <button type="button" class="btn-show-password" id="toggle-login-password">
+                👁
+              </button>
+            </div>
+            <span class="form-error" id="login-password-error"></span>
+          </div>
+
+          <!-- Messaggio di errore globale del form — mostrato quando
+               il server risponde con un errore (es. credenziali errate) -->
+          <div class="form-alert form-alert-danger" id="login-error" hidden>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-login">
+            <!-- Lo spinner viene mostrato via JS durante la chiamata API,
+                 al posto del testo, per indicare che qualcosa sta succedendo -->
+            <span class="btn-text">Accedi</span>
+            <span class="spinner" hidden></span>
+          </button>
+
+        </form>
+
+
+        <!-- FORM REGISTRAZIONE — nascosto di default -->
+        <form id="form-register" class="auth-form" hidden novalidate>
+
+          <div class="form-group">
+            <label class="form-label" for="register-nome">Nome</label>
+            <input
+              class="form-control"
+              type="text"
+              id="register-nome"
+              placeholder="Mario Rossi"
+              autocomplete="name"
+              required
+            >
+            <span class="form-error" id="register-nome-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="register-email">Email</label>
+            <input
+              class="form-control"
+              type="email"
+              id="register-email"
+              placeholder="mario@example.com"
+              autocomplete="email"
+              required
+            >
+            <span class="form-error" id="register-email-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="register-password">Password</label>
+            <div class="input-password-wrap">
+              <input
+                class="form-control"
+                type="password"
+                id="register-password"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+              >
+              <button type="button" class="btn-show-password" id="toggle-register-password">
+                👁
+              </button>
+            </div>
+            <!-- Suggerimento sulla lunghezza minima della password -->
+            <span class="form-hint">Minimo 8 caratteri</span>
+            <span class="form-error" id="register-password-error"></span>
+          </div>
+
+          <div class="form-alert form-alert-danger" id="register-error" hidden>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-register">
+            <span class="btn-text">Crea account</span>
+            <span class="spinner" hidden></span>
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast container — qui vengono inseriti i messaggi di notifica
+       da JS. Posizionato in fondo al body per stare sopra tutto -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- api.js prima di auth.js — auth.js usa le funzioni di api.js
+       quindi deve essere caricato dopo -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+
+</body>
+</html>

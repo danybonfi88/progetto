@@ -1,0 +1,260 @@
+/* ============================================================
+   pages/auth.css
+   Stili specifici della pagina di login e registrazione.
+   Importato solo in index.html — non serve nelle altre pagine.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   LAYOUT
+   La pagina è divisa in due colonne affiancate.
+   Su mobile la colonna sinistra sparisce e rimane solo il form.
+   ------------------------------------------------------------ */
+.auth-layout {
+  display:    flex;
+  min-height: 100vh; /* occupa sempre tutta l'altezza dello schermo */
+}
+
+
+/* ------------------------------------------------------------
+   COLONNA SINISTRA — decorativa
+   Sfondo colorato con presentazione dell'app.
+   flex: 1 la fa occupare metà pagina, affiancata al form.
+   ------------------------------------------------------------ */
+.auth-left {
+  flex:       1;
+  background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+  /* Nascosta su mobile — su schermi piccoli non c'è spazio */
+  display:    flex;
+  align-items:     center;
+  justify-content: center;
+  padding:    3rem;
+}
+
+.auth-left-content {
+  max-width: 420px;
+  color:     #ffffff;
+}
+
+/* Logo in cima alla colonna sinistra */
+.auth-brand {
+  display:     flex;
+  align-items: center;
+  gap:         0.625rem;
+  margin-bottom: 3rem;
+}
+
+.auth-brand-icon {
+  font-size: 1.75rem;
+}
+
+.auth-brand-name {
+  font-size:   var(--text-2xl);
+  font-weight: var(--font-bold);
+  color:       #ffffff;
+}
+
+.auth-left-title {
+  font-size:     2.25rem;
+  font-weight:   var(--font-bold);
+  color:         #ffffff;
+  line-height:   1.2;
+  margin-bottom: 1rem;
+}
+
+.auth-left-subtitle {
+  font-size:     var(--text-lg);
+  /* Bianco semi-trasparente per gerarchia visiva —
+     meno importante del titolo ma più del testo normale */
+  color:         rgba(255, 255, 255, 0.8);
+  margin-bottom: 2.5rem;
+  line-height:   1.6;
+}
+
+/* Lista funzionalità con icone */
+.auth-features {
+  display:        flex;
+  flex-direction: column;
+  gap:            1rem;
+}
+
+.auth-feature {
+  display:     flex;
+  align-items: center;
+  gap:         0.875rem;
+  font-size:   var(--text-base);
+  color:       rgba(255, 255, 255, 0.9);
+}
+
+.auth-feature-icon {
+  font-size:     1.25rem;
+  /* Sfondo bianco semi-trasparente dietro l'icona */
+  background:    rgba(255, 255, 255, 0.15);
+  width:         40px;
+  height:        40px;
+  border-radius: var(--radius-md);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  /* flex-shrink: 0 impedisce che l'icona si restringa
+     se il testo accanto è lungo */
+  flex-shrink:   0;
+}
+
+
+/* ------------------------------------------------------------
+   COLONNA DESTRA — form
+   Sfondo bianco, centrata verticalmente.
+   flex: 1 la fa occupare l'altra metà della pagina.
+   Su mobile occupa tutto lo schermo.
+   ------------------------------------------------------------ */
+.auth-right {
+  flex:            1;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         2rem;
+  background:      #ffffff;
+}
+
+/* Contenitore del form — larghezza fissa per non diventare
+   troppo largo su schermi grandi */
+.auth-box {
+  width:     100%;
+  max-width: 400px;
+}
+
+
+/* ------------------------------------------------------------
+   TAB LOGIN / REGISTRAZIONE
+   Due bottoni che switchano tra i due form.
+   Il bordo in basso colorato indica la tab attiva.
+   ------------------------------------------------------------ */
+.auth-tabs {
+  display:       flex;
+  margin-bottom: 2rem;
+  /* Bordo in basso che fa da "binario" per l'indicatore attivo */
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.auth-tab {
+  flex:          1;
+  padding:       0.875rem;
+  font-size:     var(--text-base);
+  font-weight:   var(--font-medium);
+  color:         var(--gray-400);
+  background:    transparent;
+  border:        none;
+  /* Il bordo in basso della tab attiva sovrascrive quello
+     del contenitore .auth-tabs */
+  border-bottom: 2px solid transparent;
+  /* margin-bottom: -2px fa sì che il bordo della tab attiva
+     si sovrapponga al bordo del contenitore */
+  margin-bottom: -2px;
+  cursor:        pointer;
+  transition:    all var(--transition);
+}
+
+.auth-tab:hover {
+  color: var(--gray-600);
+}
+
+/* Tab attiva — bordo colorato in basso e testo scuro */
+.auth-tab.active {
+  color:        var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight:  var(--font-semibold);
+}
+
+
+/* ------------------------------------------------------------
+   FORM
+   Spazio verticale tra i campi del form.
+   ------------------------------------------------------------ */
+.auth-form {
+  display:        flex;
+  flex-direction: column;
+  gap:            1.25rem;
+}
+
+
+/* ------------------------------------------------------------
+   INPUT PASSWORD
+   Wrapper per affiancare l'input e il bottone mostra/nascondi.
+   position: relative sul wrapper + position: absolute sul
+   bottone permette di sovrapporre il bottone all'input.
+   ------------------------------------------------------------ */
+.input-password-wrap {
+  position: relative;
+}
+
+.input-password-wrap .form-control {
+  /* padding-right largo per non far sovrapporre il testo
+     al bottone occhio a destra */
+  padding-right: 3rem;
+}
+
+.btn-show-password {
+  position:  absolute;
+  right:     0.75rem;
+  /* top: 50% + translateY(-50%) centra verticalmente il bottone
+     rispetto all'input, qualunque sia la sua altezza */
+  top:       50%;
+  transform: translateY(-50%);
+  color:     var(--gray-400);
+  font-size: var(--text-base);
+  padding:   0.25rem;
+  transition: color var(--transition);
+}
+
+.btn-show-password:hover {
+  color: var(--gray-700);
+}
+
+
+/* ------------------------------------------------------------
+   FORM ALERT
+   Messaggio di errore o successo a livello di form intero —
+   mostrato quando il server risponde con un errore.
+   Diverso da .form-error che è sotto un singolo campo.
+   ------------------------------------------------------------ */
+.form-alert {
+  padding:       0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+}
+
+.form-alert-danger {
+  background: var(--danger-light);
+  color:      var(--danger);
+  /* Bordo sottile per dare più definizione al messaggio */
+  border:     1px solid rgba(239, 68, 68, 0.2);
+}
+
+.form-alert-success {
+  background: var(--success-light);
+  color:      var(--success);
+  border:     1px solid rgba(16, 185, 129, 0.2);
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVE — mobile
+   Su schermi piccoli la colonna sinistra sparisce e il form
+   occupa tutto lo schermo.
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .auth-left {
+    display: none;
+  }
+
+  .auth-right {
+    padding: 1.5rem;
+  }
+
+  /* Su mobile il form è più comodo con più spazio verticale */
+  .auth-box {
+    max-width: 100%;
+  }
+}

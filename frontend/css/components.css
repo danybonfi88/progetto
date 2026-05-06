@@ -1,0 +1,573 @@
+/* ============================================================
+   components.css
+   Componenti riutilizzabili dell'interfaccia — bottoni, card,
+   form, navbar, badge, modal, toast.
+   Viene importato in tutti i file HTML dopo base.css.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   NAVBAR
+   Barra di navigazione fissa in cima alla pagina.
+   position: fixed la mantiene visibile anche durante lo scroll —
+   per questo in base.css abbiamo definito --navbar-height,
+   così il contenuto sotto non finisce coperto.
+   ------------------------------------------------------------ */
+.navbar {
+  position:   fixed;
+  top:        0;
+  left:       0;
+  right:      0;
+  height:     var(--navbar-height);
+  background: #ffffff;
+  /* Bordo sottile in basso per separare la navbar dal contenuto */
+  border-bottom: 1px solid var(--gray-200);
+  /* z-index alto per stare sopra a tutti gli altri elementi */
+  z-index:    100;
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-inner {
+  height:  100%;
+  display: flex;
+  align-items:     center;
+  justify-content: space-between;
+  /* Riusa la classe .container di base.css per la larghezza massima */
+  max-width: var(--max-width);
+  margin:    0 auto;
+  padding:   0 1.5rem;
+}
+
+/* Logo / nome app */
+.navbar-brand {
+  font-size:   var(--text-xl);
+  font-weight: var(--font-bold);
+  color:       var(--primary);
+  /* Piccolo effetto decorativo — un punto colorato dopo il nome */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Link di navigazione */
+.navbar-links {
+  display:     flex;
+  align-items: center;
+  gap:         0.25rem;
+}
+
+.navbar-link {
+  padding:       0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  color:         var(--gray-600);
+  transition:    all var(--transition);
+}
+
+.navbar-link:hover {
+  background: var(--gray-100);
+  color:      var(--gray-900);
+}
+
+/* Classe aggiunta via JS alla voce attiva */
+.navbar-link.active {
+  background: var(--primary-light);
+  color:      var(--primary);
+}
+
+/* Avatar utente in alto a destra */
+.navbar-avatar {
+  width:         36px;
+  height:        36px;
+  border-radius: var(--radius-full);
+  background:    var(--primary);
+  color:         #ffffff;
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-semibold);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  cursor:        pointer;
+}
+
+
+/* ------------------------------------------------------------
+   BOTTONI
+   Sistema di bottoni con varianti per ogni contesto.
+   La classe base .btn definisce le proprietà comuni,
+   le varianti (.btn-primary, .btn-danger ecc.) aggiungono
+   solo colore e stile — così non si ripete il codice.
+   ------------------------------------------------------------ */
+.btn {
+  display:       inline-flex;
+  align-items:   center;
+  justify-content: center;
+  gap:           0.5rem;
+  padding:       0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  /* Impedisce che il testo vada a capo nei bottoni */
+  white-space:   nowrap;
+  transition:    all var(--transition);
+  cursor:        pointer;
+  border:        none;
+}
+
+/* Bottone primario — azione principale della pagina */
+.btn-primary {
+  background: var(--primary);
+  color:      #ffffff;
+}
+.btn-primary:hover {
+  background:  var(--primary-dark);
+  /* Leggero spostamento verso l'alto al hover — effetto "lift" */
+  transform:   translateY(-1px);
+  box-shadow:  var(--shadow-md);
+}
+
+/* Bottone secondario — azione alternativa */
+.btn-secondary {
+  background: var(--gray-100);
+  color:      var(--gray-700);
+}
+.btn-secondary:hover {
+  background: var(--gray-200);
+}
+
+/* Bottone outline — meno enfasi del primario */
+.btn-outline {
+  background:    transparent;
+  color:         var(--primary);
+  border:        1.5px solid var(--primary);
+}
+.btn-outline:hover {
+  background: var(--primary-light);
+}
+
+/* Bottone danger — azioni distruttive come eliminazione */
+.btn-danger {
+  background: var(--danger);
+  color:      #ffffff;
+}
+.btn-danger:hover {
+  background: #DC2626;
+  transform:  translateY(-1px);
+}
+
+/* Bottone ghost — minima enfasi, usato per azioni secondarie */
+.btn-ghost {
+  background: transparent;
+  color:      var(--gray-600);
+}
+.btn-ghost:hover {
+  background: var(--gray-100);
+  color:      var(--gray-900);
+}
+
+/* Dimensioni alternative */
+.btn-sm {
+  padding:   0.375rem 0.875rem;
+  font-size: var(--text-xs);
+}
+.btn-lg {
+  padding:   0.875rem 1.75rem;
+  font-size: var(--text-base);
+}
+
+/* Stato disabilitato — stesso stile per tutti i bottoni */
+.btn:disabled {
+  opacity: 0.5;
+  cursor:  not-allowed;
+  /* Annulla l'effetto hover quando disabilitato */
+  transform: none !important;
+}
+
+/* Bottone full width — occupa tutta la larghezza del contenitore */
+.btn-full {
+  width: 100%;
+}
+
+
+/* ------------------------------------------------------------
+   CARD
+   Contenitore generico per raggruppare contenuti correlati.
+   Usato per eventi, file, quiz, gruppi ecc.
+   ------------------------------------------------------------ */
+.card {
+  background:    #ffffff;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding:       1.5rem;
+  box-shadow:    var(--shadow-sm);
+  transition:    box-shadow var(--transition);
+}
+
+/* Versione interattiva — per card cliccabili */
+.card-hoverable:hover {
+  box-shadow: var(--shadow-md);
+  transform:  translateY(-2px);
+  transition: all var(--transition);
+}
+
+.card-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1rem;
+  /* Bordo in basso per separare header dal contenuto */
+  padding-bottom:  1rem;
+  border-bottom:   1px solid var(--gray-100);
+}
+
+.card-title {
+  font-size:   var(--text-lg);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-900);
+}
+
+.card-body {
+  color: var(--gray-600);
+}
+
+.card-footer {
+  margin-top:   1rem;
+  padding-top:  1rem;
+  border-top:   1px solid var(--gray-100);
+  display:      flex;
+  align-items:  center;
+  gap:          0.75rem;
+}
+
+
+/* ------------------------------------------------------------
+   FORM
+   Stili per tutti gli elementi di input.
+   .form-group raggruppa label + input + eventuale errore,
+   così lo spazio tra i campi è sempre coerente.
+   ------------------------------------------------------------ */
+.form-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.375rem;
+}
+
+.form-label {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  color:       var(--gray-700);
+}
+
+/* Stile base per input, select e textarea */
+.form-control {
+  width:         100%;
+  padding:       0.625rem 0.875rem;
+  border:        1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  color:         var(--gray-900);
+  background:    #ffffff;
+  transition:    border-color var(--transition), box-shadow var(--transition);
+  /* outline: none rimuove il bordo di default del browser —
+     lo sostituiamo con il nostro border colorato al focus */
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  /* box-shadow leggero per dare più evidenza al campo attivo */
+  box-shadow:   0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* Stato di errore — bordo rosso */
+.form-control.error {
+  border-color: var(--danger);
+}
+.form-control.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* Messaggio di errore sotto il campo */
+.form-error {
+  font-size: var(--text-xs);
+  color:     var(--danger);
+}
+
+/* Testo di aiuto sotto il campo */
+.form-hint {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+}
+
+textarea.form-control {
+  resize:     vertical;
+  min-height: 100px;
+}
+
+select.form-control {
+  /* Rimuove la freccia di default del browser su alcuni sistemi */
+  appearance: none;
+  /* Aggiunge una freccia personalizzata via SVG inline */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:   no-repeat;
+  background-position: right 0.875rem center;
+  padding-right: 2.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   BADGE
+   Etichette piccole per categorie, stati, ruoli.
+   Usate per il tipo di evento, il ruolo nel gruppo, ecc.
+   ------------------------------------------------------------ */
+.badge {
+  display:       inline-flex;
+  align-items:   center;
+  padding:       0.2rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-medium);
+  white-space:   nowrap;
+}
+
+.badge-primary { background: var(--primary-light); color: var(--primary); }
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: #B45309; }
+.badge-danger  { background: var(--danger-light);  color: var(--danger);  }
+.badge-gray    { background: var(--gray-100);       color: var(--gray-600); }
+
+
+/* ------------------------------------------------------------
+   MODAL
+   Finestra sovrapposta per form e conferme.
+   L'overlay scuro dietro comunica che il resto della pagina
+   è temporaneamente non interagibile.
+   ------------------------------------------------------------ */
+
+/* Overlay scuro che copre tutta la pagina */
+.modal-overlay {
+  position:   fixed;
+  inset:      0; /* shorthand per top/right/bottom/left: 0 */
+  background: rgba(0, 0, 0, 0.45);
+  /* backdrop-filter sfoca il contenuto sotto il modal */
+  backdrop-filter: blur(2px);
+  z-index:    200;
+  display:    flex;
+  align-items:     center;
+  justify-content: center;
+  padding:    1rem;
+  /* Nascosto di default — viene mostrato via JS aggiungendo
+     la classe .active */
+  opacity:    0;
+  visibility: hidden;
+  transition: all var(--transition);
+}
+
+.modal-overlay.active {
+  opacity:    1;
+  visibility: visible;
+}
+
+.modal {
+  background:    #ffffff;
+  border-radius: var(--radius-xl);
+  padding:       2rem;
+  width:         100%;
+  max-width:     480px;
+  box-shadow:    var(--shadow-lg);
+  /* Animazione di entrata — parte leggermente in basso
+     e sale nella posizione finale */
+  transform:     translateY(16px);
+  transition:    transform var(--transition);
+}
+
+.modal-overlay.active .modal {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1.5rem;
+}
+
+.modal-title {
+  font-size:   var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+/* Bottone X per chiudere il modal */
+.modal-close {
+  width:         32px;
+  height:        32px;
+  border-radius: var(--radius-full);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  color:         var(--gray-400);
+  font-size:     var(--text-lg);
+  transition:    all var(--transition);
+}
+.modal-close:hover {
+  background: var(--gray-100);
+  color:      var(--gray-900);
+}
+
+.modal-footer {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             0.75rem;
+  margin-top:      1.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   TOAST
+   Notifiche temporanee in basso a destra.
+   Appaiono automaticamente e scompaiono dopo qualche secondo.
+   ------------------------------------------------------------ */
+.toast-container {
+  position: fixed;
+  bottom:   1.5rem;
+  right:    1.5rem;
+  z-index:  300;
+  display:  flex;
+  flex-direction: column;
+  gap:      0.75rem;
+}
+
+.toast {
+  display:       flex;
+  align-items:   center;
+  gap:           0.75rem;
+  padding:       0.875rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background:    var(--gray-900);
+  color:         #ffffff;
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  box-shadow:    var(--shadow-lg);
+  min-width:     280px;
+  max-width:     400px;
+  /* Animazione di entrata da destra */
+  animation:     toast-in 0.3s ease forwards;
+}
+
+.toast-success { background: var(--success); }
+.toast-danger  { background: var(--danger);  }
+.toast-warning { background: #B45309;        }
+
+@keyframes toast-in {
+  from {
+    opacity:   0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity:   1;
+    transform: translateX(0);
+  }
+}
+
+/* Animazione di uscita — aggiunta via JS prima di rimuovere
+   il toast dal DOM */
+@keyframes toast-out {
+  from {
+    opacity:   1;
+    transform: translateX(0);
+  }
+  to {
+    opacity:   0;
+    transform: translateX(100%);
+  }
+}
+
+.toast.removing {
+  animation: toast-out 0.3s ease forwards;
+}
+
+
+/* ------------------------------------------------------------
+   EMPTY STATE
+   Messaggio mostrato quando una lista è vuota —
+   ad esempio nessun evento, nessun file, nessun quiz.
+   Meglio di una pagina bianca senza spiegazioni.
+   ------------------------------------------------------------ */
+.empty-state {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content: center;
+  padding:        4rem 2rem;
+  text-align:     center;
+  color:          var(--gray-400);
+}
+
+.empty-state-icon {
+  font-size:     3rem;
+  margin-bottom: 1rem;
+  opacity:       0.5;
+}
+
+.empty-state-title {
+  font-size:     var(--text-lg);
+  font-weight:   var(--font-semibold);
+  color:         var(--gray-600);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-text {
+  font-size: var(--text-sm);
+  color:     var(--gray-400);
+}
+
+
+/* ------------------------------------------------------------
+   LOADING SPINNER
+   Indicatore di caricamento mostrato durante le chiamate API.
+   Usare un feedback visivo evita che l'utente pensi che
+   l'app si sia bloccata.
+   ------------------------------------------------------------ */
+.spinner {
+  width:  24px;
+  height: 24px;
+  border: 2.5px solid var(--gray-200);
+  /* Solo un quarto del bordo è colorato — questo crea
+     l'effetto di un arco che ruota */
+  border-top-color: var(--primary);
+  border-radius:    var(--radius-full);
+  animation:        spin 0.7s linear infinite;
+}
+
+.spinner-lg {
+  width:        48px;
+  height:       48px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ------------------------------------------------------------
+   DIVIDER
+   Linea separatrice orizzontale con testo opzionale.
+   Usata nella pagina di login tra il form e i link.
+   ------------------------------------------------------------ */
+.divider {
+  display:     flex;
+  align-items: center;
+  gap:         1rem;
+  color:       var(--gray-400);
+  font-size:   var(--text-sm);
+}
+
+.divider::before,
+.divider::after {
+  content:    '';
+  flex:       1;
+  height:     1px;
+  background: var(--gray-200);
+}
