@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<!--
+  calendario.html
+  Pagina del calendario — mostra gli eventi dell'utente
+  in una vista mensile interattiva. Permette di aggiungere,
+  modificare e eliminare eventi direttamente dalla pagina.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Calendario</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/calendario.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR — identica a dashboard.html.
+       Il link attivo viene impostato via JS in base a data-page -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE PAGINA -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Calendario</h1>
+          <p class="page-subtitle">I tuoi impegni, compiti e verifiche.</p>
+        </div>
+        <!-- Bottone per aprire il modal di creazione evento -->
+        <button class="btn btn-primary" id="btn-nuovo-evento">
+          + Nuovo evento
+        </button>
+      </div>
+
+
+      <!-- CONTROLLI CALENDARIO
+           Frecce per navigare tra i mesi e titolo del mese corrente.
+           Il mese viene aggiornato via JS ogni volta che si naviga. -->
+      <div class="calendario-controls">
+        <button class="btn btn-ghost btn-sm" id="btn-mese-prec">← Precedente</button>
+        <!-- Il titolo del mese viene inserito via JS -->
+        <h2 class="calendario-titolo" id="calendario-titolo"></h2>
+        <button class="btn btn-ghost btn-sm" id="btn-mese-succ">Successivo →</button>
+      </div>
+
+
+      <!-- GRIGLIA CALENDARIO
+           L'intestazione con i giorni della settimana è fissa.
+           Le celle dei giorni vengono generate via JS in base
+           al mese corrente — il numero di celle cambia ogni mese. -->
+      <div class="calendario-wrap card">
+
+        <!-- Intestazione giorni della settimana -->
+        <div class="calendario-header">
+          <div class="calendario-giorno-header">Lun</div>
+          <div class="calendario-giorno-header">Mar</div>
+          <div class="calendario-giorno-header">Mer</div>
+          <div class="calendario-giorno-header">Gio</div>
+          <div class="calendario-giorno-header">Ven</div>
+          <div class="calendario-giorno-header">Sab</div>
+          <div class="calendario-giorno-header">Dom</div>
+        </div>
+
+        <!-- Griglia dei giorni — popolata interamente via JS.
+             Ogni cella contiene la data e gli eventi di quel giorno -->
+        <div class="calendario-grid" id="calendario-grid">
+          <!-- Spinner mostrato mentre si caricano i dati dall'API -->
+          <div class="calendario-loading" id="calendario-loading">
+            <div class="spinner spinner-lg"></div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- LISTA EVENTI
+           Vista alternativa al calendario — lista di tutti gli
+           eventi futuri in ordine cronologico. Più comoda del
+           calendario per vedere rapidamente cosa c'è in programma. -->
+      <div class="card" style="margin-top: 1.5rem">
+        <div class="card-header">
+          <h2 class="card-title">Prossimi eventi</h2>
+          <!-- Filtro per tipo di evento -->
+          <select class="form-control" id="filtro-tipo" style="width: auto">
+            <option value="">Tutti i tipi</option>
+            <option value="compito">Compiti</option>
+            <option value="verifica">Verifiche</option>
+            <option value="interrogazione">Interrogazioni</option>
+            <option value="altro">Altro</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div class="flex-center" id="lista-loading">
+            <div class="spinner spinner-lg"></div>
+          </div>
+          <ul class="lista-eventi" id="lista-eventi" hidden></ul>
+          <div class="empty-state" id="lista-empty" hidden>
+            <div class="empty-state-icon">📅</div>
+            <div class="empty-state-title">Nessun evento in programma</div>
+            <div class="empty-state-text">Clicca su "Nuovo evento" per aggiungerne uno.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+
+  <!-- MODAL NUOVO / MODIFICA EVENTO
+       Unico modal usato sia per la creazione che per la modifica —
+       il titolo e il comportamento del bottone cambiano via JS
+       in base al contesto. -->
+  <div class="modal-overlay" id="modal-evento">
+    <div class="modal">
+      <div class="modal-header">
+        <!-- Il titolo viene impostato via JS: "Nuovo evento" o "Modifica evento" -->
+        <h3 class="modal-title" id="modal-titolo">Nuovo evento</h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+
+      <form id="form-evento" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="evento-titolo">Titolo *</label>
+          <input class="form-control" type="text" id="evento-titolo" placeholder="Es. Verifica di matematica" required>
+          <span class="form-error" id="evento-titolo-error"></span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="evento-tipo">Tipo *</label>
+            <select class="form-control" id="evento-tipo" required>
+              <option value="">Seleziona tipo</option>
+              <option value="compito">Compito</option>
+              <option value="verifica">Verifica</option>
+              <option value="interrogazione">Interrogazione</option>
+              <option value="altro">Altro</option>
+            </select>
+            <span class="form-error" id="evento-tipo-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="evento-data">Data *</label>
+            <input class="form-control" type="date" id="evento-data" required>
+            <span class="form-error" id="evento-data-error"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="evento-ora">Ora</label>
+            <input class="form-control" type="time" id="evento-ora">
+          </div>
+
+          <div class="form-group">
+            <!-- Le materie vengono caricate dall'API e inserite via JS -->
+            <label class="form-label" for="evento-materia">Materia</label>
+            <select class="form-control" id="evento-materia">
+              <option value="">Nessuna materia</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="evento-note">Note</label>
+          <textarea class="form-control" id="evento-note" placeholder="Argomenti da studiare, dettagli..."></textarea>
+        </div>
+
+        <!-- Checkbox completato — visibile solo in modifica, non in creazione -->
+        <div class="form-group" id="completato-group" hidden>
+          <label class="form-check">
+            <input type="checkbox" id="evento-completato">
+            <span>Segna come completato</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
+          <button type="submit" class="btn btn-primary" id="btn-salva">
+            <span class="btn-text">Salva</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL CONFERMA ELIMINAZIONE
+       Modal separato per la conferma prima di eliminare un evento.
+       Avere un passaggio di conferma evita eliminazioni accidentali. -->
+  <div class="modal-overlay" id="modal-elimina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elimina evento</h3>
+        <button class="modal-close" id="modal-elimina-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600)">
+        Sei sicuro di voler eliminare questo evento? L'operazione non può essere annullata.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-elimina-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-elimina-conferma">
+          <span class="btn-text">Elimina</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/calendario.js"></script>
+
+</body>
+</html>

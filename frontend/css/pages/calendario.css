@@ -1,0 +1,348 @@
+css/* ============================================================
+   pages/calendario.css
+   Stili specifici della pagina calendario — griglia mensile,
+   celle dei giorni, eventi colorati, lista eventi.
+   Importato solo in calendario.html.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   INTESTAZIONE PAGINA
+   Affianca titolo e bottone "Nuovo evento" su una riga.
+   Identico al pattern usato in dashboard.css ma estratto
+   qui perché serve in più pagine con lo stesso layout.
+   ------------------------------------------------------------ */
+.page-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   CONTROLLI NAVIGAZIONE MESE
+   Frecce e titolo del mese corrente affiancati al centro.
+   Il titolo viene aggiornato via JS ogni volta che si naviga.
+   ------------------------------------------------------------ */
+.calendario-controls {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1rem;
+}
+
+.calendario-titolo {
+  font-size:   var(--text-xl);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-900);
+  /* min-width fisso per impedire che la larghezza cambi
+     al cambio del mese — "Gennaio" è più corto di "Settembre" */
+  min-width:   200px;
+  text-align:  center;
+}
+
+
+/* ------------------------------------------------------------
+   WRAPPER CALENDARIO
+   Contenitore esterno con bordo e sfondo — riusa la classe
+   .card di components.css ma aggiunge overflow hidden per
+   far funzionare il border-radius sulle celle ai bordi.
+   ------------------------------------------------------------ */
+.calendario-wrap {
+  overflow: hidden;
+  padding:  0;
+}
+
+
+/* ------------------------------------------------------------
+   INTESTAZIONE GIORNI DELLA SETTIMANA
+   Sette colonne fisse con i nomi dei giorni.
+   Bordo in basso per separare l'intestazione dalla griglia.
+   ------------------------------------------------------------ */
+.calendario-header {
+  display:               grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom:         1px solid var(--gray-200);
+}
+
+.calendario-giorno-header {
+  padding:     0.75rem;
+  text-align:  center;
+  font-size:   var(--text-xs);
+  font-weight: var(--font-semibold);
+  color:        var(--gray-400);
+  /* Maiuscolo per i nomi abbreviati dei giorni */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+
+/* ------------------------------------------------------------
+   GRIGLIA GIORNI
+   Sette colonne — una per ogni giorno della settimana.
+   Le celle vengono generate via JS: il numero totale dipende
+   dal primo giorno del mese e dal numero di giorni nel mese.
+   ------------------------------------------------------------ */
+.calendario-grid {
+  display:               grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+/* Spinner centrato mentre i dati si caricano —
+   occupa l'intera griglia con grid-column: 1 / -1 */
+.calendario-loading {
+  grid-column: 1 / -1;
+  padding:     3rem;
+  display:     flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ------------------------------------------------------------
+   CELLA GIORNO
+   Ogni cella rappresenta un giorno del mese.
+   min-height fisso per mantenere le proporzioni anche
+   quando non ci sono eventi in quel giorno.
+   ------------------------------------------------------------ */
+.calendario-cella {
+  min-height:  100px;
+  padding:     0.5rem;
+  border-right:  1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-100);
+  cursor:        pointer;
+  transition:    background var(--transition);
+  /* vertical-align: top per allineare il numero in cima */
+  vertical-align: top;
+}
+
+.calendario-cella:hover {
+  background: var(--gray-50);
+}
+
+/* Rimuove il bordo destro sull'ultima colonna — la domenica */
+.calendario-cella:nth-child(7n) {
+  border-right: none;
+}
+
+/* Celle del mese precedente e successivo — opache per
+   indicare che non appartengono al mese corrente */
+.calendario-cella.altro-mese {
+  background: var(--gray-50);
+  opacity:    0.5;
+  cursor:     default;
+}
+
+.calendario-cella.altro-mese:hover {
+  background: var(--gray-50);
+}
+
+/* Cella del giorno corrente — bordo colorato per evidenziarla */
+.calendario-cella.oggi {
+  background: var(--primary-light);
+}
+
+.calendario-cella.oggi .cella-numero {
+  background:    var(--primary);
+  color:         #ffffff;
+  border-radius: var(--radius-full);
+  width:         26px;
+  height:        26px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+}
+
+
+/* ------------------------------------------------------------
+   NUMERO DEL GIORNO
+   Mostrato in cima a ogni cella.
+   Font piccolo e colore attenuato per non competere
+   con gli eventi che sono il contenuto principale.
+   ------------------------------------------------------------ */
+.cella-numero {
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  color:         var(--gray-600);
+  margin-bottom: 0.25rem;
+  /* width fisso per l'effetto cerchio sul giorno corrente */
+  width:  26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ------------------------------------------------------------
+   EVENTI NELLA CELLA
+   Ogni evento è una pillola colorata con il titolo troncato.
+   Il colore di sfondo corrisponde al colore della materia —
+   impostato via JS con style="background: ...".
+   ------------------------------------------------------------ */
+.cella-eventi {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.cella-evento {
+  font-size:    var(--text-xs);
+  padding:      2px 6px;
+  border-radius: var(--radius-sm);
+  /* Tronca il titolo se troppo lungo per la cella */
+  white-space:  nowrap;
+  overflow:     hidden;
+  text-overflow: ellipsis;
+  cursor:       pointer;
+  transition:   opacity var(--transition);
+}
+
+.cella-evento:hover {
+  opacity: 0.8;
+}
+
+/* Indicatore "+N altri" quando ci sono troppi eventi in una cella —
+   mostrato via JS quando gli eventi sono più di 3 */
+.cella-altri {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+  padding:   2px 4px;
+}
+
+
+/* ------------------------------------------------------------
+   LISTA EVENTI
+   Vista alternativa al calendario — ogni elemento mostra
+   il colore della materia, titolo, tipo, data e azioni.
+   ------------------------------------------------------------ */
+.lista-eventi {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+}
+
+.lista-evento-item {
+  display:       flex;
+  align-items:   center;
+  gap:           1rem;
+  padding:       0.875rem 1rem;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  transition:    box-shadow var(--transition);
+}
+
+.lista-evento-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Barra colorata a sinistra — colore della materia */
+.lista-evento-colore {
+  width:         4px;
+  height:        40px;
+  border-radius: var(--radius-full);
+  flex-shrink:   0;
+}
+
+/* Contenuto principale dell'evento */
+.lista-evento-body {
+  flex: 1;
+}
+
+.lista-evento-titolo {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  color:       var(--gray-900);
+  /* Segna come completato con testo barrato */
+}
+
+.lista-evento-titolo.completato {
+  text-decoration: line-through;
+  color:           var(--gray-400);
+}
+
+.lista-evento-meta {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  margin-top:  0.25rem;
+}
+
+.lista-evento-data {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+}
+
+.lista-evento-materia {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+}
+
+/* Azioni — bottoni modifica ed elimina */
+.lista-evento-azioni {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  /* flex-shrink: 0 impedisce che i bottoni si restringano */
+  flex-shrink: 0;
+}
+
+
+/* ------------------------------------------------------------
+   FORM ROW
+   Affianca due campi del form su una riga — usato per
+   tipo+data e ora+materia nel modal evento.
+   ------------------------------------------------------------ */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap:     1rem;
+}
+
+
+/* ------------------------------------------------------------
+   CHECKBOX PERSONALIZZATA
+   Stile per il checkbox "Segna come completato" nel modal.
+   ------------------------------------------------------------ */
+.form-check {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  cursor:      pointer;
+  font-size:   var(--text-sm);
+  color:       var(--gray-700);
+}
+
+.form-check input[type="checkbox"] {
+  width:  16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVE — mobile
+   Su schermi piccoli il calendario diventa difficile da usare —
+   nascondiamo la griglia e mostriamo solo la lista eventi.
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .calendario-wrap {
+    display: none;
+  }
+
+  .calendario-controls {
+    display: none;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            1rem;
+  }
+}

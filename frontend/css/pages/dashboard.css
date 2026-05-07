@@ -1,0 +1,345 @@
+/* ============================================================
+   pages/dashboard.css
+   Stili specifici della dashboard — statistiche, griglia
+   principale, accesso rapido.
+   Importato solo in dashboard.html.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   INTESTAZIONE PAGINA
+   Titolo e sottotitolo in cima alla dashboard.
+   margin-bottom crea spazio prima delle card statistiche.
+   ------------------------------------------------------------ */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size:   var(--text-3xl);
+  font-weight: var(--font-bold);
+  color:       var(--gray-900);
+  /* line-height stretto per i titoli grandi — come definito
+     in base.css per tutti gli h1-h6 */
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size:  var(--text-base);
+  color:      var(--gray-400);
+  margin-top: 0.375rem;
+}
+
+
+/* ------------------------------------------------------------
+   GRIGLIA STATISTICHE
+   Quattro card affiancate con contatori rapidi.
+   auto-fit permette alle card di adattarsi alla larghezza
+   disponibile senza media query manuali — sotto i 480px
+   diventano automaticamente due colonne.
+   ------------------------------------------------------------ */
+.stats-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap:                   1rem;
+  margin-bottom:         2rem;
+}
+
+.stat-card {
+  background:    #ffffff;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding:       1.25rem;
+  display:       flex;
+  align-items:   center;
+  gap:           1rem;
+  box-shadow:    var(--shadow-sm);
+  /* Transizione per l'effetto hover definito sotto */
+  transition:    box-shadow var(--transition);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Icona della stat — sfondo colorato con emoji al centro */
+.stat-icon {
+  font-size:     1.75rem;
+  width:         52px;
+  height:        52px;
+  border-radius: var(--radius-md);
+  background:    var(--primary-light);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  /* flex-shrink: 0 impedisce che l'icona si restringa
+     quando il testo accanto è lungo */
+  flex-shrink:   0;
+}
+
+/* Numero grande — il valore principale della stat */
+.stat-value {
+  font-size:   var(--text-2xl);
+  font-weight: var(--font-bold);
+  color:       var(--gray-900);
+  line-height: 1;
+}
+
+/* Etichetta sotto il numero */
+.stat-label {
+  font-size:  var(--text-sm);
+  color:      var(--gray-400);
+  margin-top: 0.25rem;
+}
+
+
+/* ------------------------------------------------------------
+   GRIGLIA PRINCIPALE
+   Due colonne affiancate: eventi a sinistra, file a destra.
+   Su mobile diventano una colonna sola.
+   margin-bottom crea spazio prima della sezione accesso rapido.
+   ------------------------------------------------------------ */
+.dashboard-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   1.5rem;
+  margin-bottom:         1.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   LISTA EVENTI
+   Ogni elemento mostra un pallino colorato con la materia,
+   il titolo dell'evento, la data e un badge con il tipo.
+   ------------------------------------------------------------ */
+.eventi-list {
+  display:        flex;
+  flex-direction: column;
+  /* gap tra gli elementi della lista invece di margin —
+     più pulito e non crea problemi con il primo/ultimo elemento */
+  gap:            0.75rem;
+}
+
+.evento-item {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+  padding:     0.625rem 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.evento-item:last-child {
+  border-bottom: none;
+}
+
+/* Pallino colorato con il colore della materia —
+   il colore viene impostato via JS con style="background: #..." */
+.evento-dot {
+  width:         10px;
+  height:        10px;
+  border-radius: var(--radius-full);
+  flex-shrink:   0;
+}
+
+.evento-titolo {
+  flex:        1;
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  color:       var(--gray-900);
+  /* Tronca il testo se troppo lungo invece di andare a capo */
+  white-space:  nowrap;
+  overflow:     hidden;
+  text-overflow: ellipsis;
+}
+
+.evento-data {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+}
+
+
+/* ------------------------------------------------------------
+   LISTA FILE
+   Ogni elemento mostra un'icona con il tipo di file,
+   il nome originale e la dimensione.
+   ------------------------------------------------------------ */
+.files-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+}
+
+.file-item {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+  padding:     0.625rem 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+/* Icona del tipo di file — sfondo colorato in base al mime type,
+   impostato via JS */
+.file-icon {
+  width:         36px;
+  height:        36px;
+  border-radius: var(--radius-sm);
+  background:    var(--gray-100);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  font-size:     1.125rem;
+  flex-shrink:   0;
+}
+
+.file-nome {
+  flex:        1;
+  font-size:   var(--text-sm);
+  color:       var(--gray-900);
+  white-space:  nowrap;
+  overflow:     hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: var(--text-xs);
+  color:     var(--gray-400);
+}
+
+
+/* ------------------------------------------------------------
+   ACCESSO RAPIDO
+   Griglia di bottoni per raggiungere le sezioni principali.
+   auto-fit gestisce automaticamente il numero di colonne
+   in base alla larghezza disponibile.
+   ------------------------------------------------------------ */
+.quick-actions {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap:                   0.75rem;
+  padding-top:           0.5rem;
+}
+
+.quick-action {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.5rem;
+  padding:        1.25rem 1rem;
+  border-radius:  var(--radius-lg);
+  background:     var(--gray-50);
+  border:         1px solid var(--gray-100);
+  color:          var(--gray-600);
+  transition:     all var(--transition);
+  cursor:         pointer;
+}
+
+.quick-action:hover {
+  background:  var(--primary-light);
+  border-color: transparent;
+  color:        var(--primary);
+  /* Leggero spostamento verso l'alto — effetto "lift" coerente
+     con i bottoni primari definiti in components.css */
+  transform:   translateY(-2px);
+  box-shadow:  var(--shadow-sm);
+}
+
+.quick-action-icon {
+  font-size: 1.75rem;
+}
+
+.quick-action-label {
+  font-size:   var(--text-xs);
+  font-weight: var(--font-medium);
+  text-align:  center;
+}
+
+
+/* ------------------------------------------------------------
+   NAVBAR DROPDOWN
+   Menu che appare cliccando sull'avatar utente in alto a destra.
+   position: absolute rispetto a .navbar-user che ha
+   position: relative — così il dropdown si posiziona
+   esattamente sotto l'avatar.
+   ------------------------------------------------------------ */
+.navbar-user {
+  position: relative;
+}
+
+.navbar-dropdown {
+  position:      absolute;
+  top:           calc(100% + 8px);
+  right:         0;
+  background:    #ffffff;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow:    var(--shadow-lg);
+  min-width:     180px;
+  z-index:       150;
+  overflow:      hidden;
+}
+
+/* Nome utente in cima al dropdown */
+.dropdown-name {
+  padding:     0.75rem 1rem;
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-900);
+}
+
+/* Linea separatrice tra nome e voci del menu */
+.dropdown-divider {
+  height:     1px;
+  background: var(--gray-100);
+}
+
+/* Voce generica del menu */
+.dropdown-item {
+  width:      100%;
+  padding:    0.625rem 1rem;
+  font-size:  var(--text-sm);
+  color:      var(--gray-700);
+  text-align: left;
+  transition: background var(--transition);
+  display:    block;
+}
+
+.dropdown-item:hover {
+  background: var(--gray-50);
+}
+
+/* Voce "Esci" — rossa per comunicare un'azione distruttiva */
+.dropdown-item-danger {
+  color: var(--danger);
+}
+
+.dropdown-item-danger:hover {
+  background: var(--danger-light);
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVE — tablet e mobile
+   Sotto i 768px la griglia principale diventa una colonna.
+   Sotto i 480px il titolo si riduce per non uscire dallo schermo.
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: var(--text-2xl);
+  }
+
+  /* Su mobile i link della navbar spariscono — troppo stretti.
+     In un progetto reale andrebbero sostituiti con un menu hamburger */
+  .navbar-links {
+    display: none;
+  }
+}

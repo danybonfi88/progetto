@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<!--
+  drive.html
+  Pagina del drive — permette di caricare, visualizzare
+  ed eliminare file. I file possono essere privati o
+  condivisi con un gruppo.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Drive</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/drive.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Drive</h1>
+          <p class="page-subtitle">I tuoi appunti e file di studio.</p>
+        </div>
+        <!-- Bottone upload — apre il file picker del browser -->
+        <button class="btn btn-primary" id="btn-upload">
+          + Carica file
+        </button>
+      </div>
+
+
+      <!-- FILTRI
+           Permettono di filtrare i file per materia.
+           Le materie vengono caricate dall'API e inserite via JS. -->
+      <div class="drive-filtri">
+        <button class="filtro-btn active" data-materia="">Tutti</button>
+        <!-- I bottoni delle materie vengono generati via JS -->
+      </div>
+
+
+      <!-- GRIGLIA FILE
+           Vista a griglia con card per ogni file.
+           Popolata interamente via JS. -->
+      <div class="flex-center" id="files-loading" style="padding: 3rem">
+        <div class="spinner spinner-lg"></div>
+      </div>
+
+      <div class="files-grid" id="files-grid" hidden></div>
+
+      <div class="empty-state" id="files-empty" hidden>
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Nessun file caricato</div>
+        <div class="empty-state-text">
+          Clicca su "Carica file" per aggiungere i tuoi appunti.
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+
+  <!-- INPUT FILE NASCOSTO
+       Non mostriamo un input file direttamente — è brutto
+       graficamente. Lo teniamo nascosto e lo attiviamo
+       programmaticamente quando l'utente clicca su "Carica file". -->
+  <input type="file" id="input-file" hidden>
+
+
+  <!-- MODAL UPLOAD
+       Mostrato dopo che l'utente ha selezionato un file —
+       permette di scegliere la materia e il gruppo prima
+       di confermare l'upload. -->
+  <div class="modal-overlay" id="modal-upload">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Carica file</h3>
+        <button class="modal-close" id="modal-upload-close">✕</button>
+      </div>
+
+      <!-- Anteprima del file selezionato -->
+      <div class="file-preview" id="file-preview">
+        <div class="file-preview-icona" id="file-preview-icona">📄</div>
+        <div class="file-preview-info">
+          <!-- Nome e dimensione vengono inseriti via JS -->
+          <div class="file-preview-nome" id="file-preview-nome"></div>
+          <div class="file-preview-size" id="file-preview-size"></div>
+        </div>
+      </div>
+
+      <form id="form-upload" novalidate>
+
+        <div class="form-group">
+          <!-- Le materie vengono caricate dall'API e inserite via JS -->
+          <label class="form-label" for="upload-materia">Materia</label>
+          <select class="form-control" id="upload-materia">
+            <option value="">Nessuna materia</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <!-- I gruppi vengono caricati dall'API e inseriti via JS -->
+          <label class="form-label" for="upload-gruppo">Condividi con gruppo</label>
+          <select class="form-control" id="upload-gruppo">
+            <option value="">Solo per me</option>
+          </select>
+          <span class="form-hint">
+            Se selezioni un gruppo, il file sarà visibile a tutti i membri.
+          </span>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-upload-annulla">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-upload-conferma">
+            <span class="btn-text">Carica</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL CONFERMA ELIMINAZIONE -->
+  <div class="modal-overlay" id="modal-elimina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elimina file</h3>
+        <button class="modal-close" id="modal-elimina-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600)">
+        Sei sicuro di voler eliminare questo file? L'operazione non può essere annullata.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-elimina-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-elimina-conferma">
+          <span class="btn-text">Elimina</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/drive.js"></script>
+
+</body>
+</html>
