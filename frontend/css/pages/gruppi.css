@@ -1,0 +1,301 @@
+/* ============================================================
+   pages/gruppi.css
+   Stili specifici della pagina gruppi — griglia card gruppi,
+   modal dettaglio con lista membri, zona pericolosa.
+   Importato solo in gruppi.html.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   INTESTAZIONE PAGINA
+   ------------------------------------------------------------ */
+.page-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   GRIGLIA GRUPPI
+   Card affiancate che si adattano alla larghezza disponibile.
+   Ogni card rappresenta un gruppo di cui l'utente fa parte.
+   ------------------------------------------------------------ */
+.gruppi-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:                   1rem;
+}
+
+
+/* ------------------------------------------------------------
+   CARD GRUPPO
+   Mostra nome, descrizione, numero membri e ruolo dell'utente.
+   Il badge ruolo cambia colore in base ad admin o membro —
+   impostato via JS aggiungendo la classe corretta.
+   ------------------------------------------------------------ */
+.gruppo-card {
+  background:    #ffffff;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding:       1.25rem;
+  display:       flex;
+  flex-direction: column;
+  gap:           0.75rem;
+  cursor:        pointer;
+  transition:    all var(--transition);
+}
+
+.gruppo-card:hover {
+  box-shadow:  var(--shadow-md);
+  transform:   translateY(-2px);
+  border-color: var(--primary-light);
+}
+
+.gruppo-card-header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  gap:             0.5rem;
+}
+
+.gruppo-card-nome {
+  font-size:   var(--text-lg);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-900);
+  line-height: 1.3;
+}
+
+/* Badge ruolo — admin in blu, membro in grigio */
+.gruppo-ruolo {
+  font-size:     var(--text-xs);
+  padding:       3px 8px;
+  border-radius: var(--radius-full);
+  font-weight:   var(--font-medium);
+  white-space:   nowrap;
+  flex-shrink:   0;
+}
+
+.gruppo-ruolo.admin {
+  background: var(--primary-light);
+  color:      var(--primary);
+}
+
+.gruppo-ruolo.membro {
+  background: var(--gray-100);
+  color:      var(--gray-600);
+}
+
+.gruppo-card-descrizione {
+  font-size:   var(--text-sm);
+  color:       var(--gray-400);
+  /* Massimo 2 righe poi troncato */
+  display:     -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow:    hidden;
+  line-height: 1.5;
+}
+
+.gruppo-card-footer {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  padding-top: 0.75rem;
+  border-top:  1px solid var(--gray-100);
+  font-size:   var(--text-xs);
+  color:       var(--gray-400);
+}
+
+/* Icona avatar piccola per il contatore membri */
+.gruppo-card-footer i {
+  font-size: 14px;
+}
+
+
+/* ------------------------------------------------------------
+   MODAL DETTAGLIO — dimensione più grande del modal standard
+   Il modal dettaglio gruppo ha più contenuto degli altri —
+   lista membri, form aggiungi, zona pericolosa. Aumentiamo
+   la larghezza massima per dargli più spazio.
+   ------------------------------------------------------------ */
+.modal-lg {
+  max-width: 560px;
+}
+
+.dettaglio-descrizione {
+  font-size:     var(--text-sm);
+  color:         var(--gray-400);
+  margin-bottom: 1.25rem;
+  /* Nascosta via JS se il gruppo non ha descrizione */
+}
+
+
+/* ------------------------------------------------------------
+   SEZIONE MEMBRI
+   Intestazione con titolo e contatore, lista membri,
+   form per aggiungere nuovi membri (solo admin).
+   ------------------------------------------------------------ */
+.dettaglio-sezione {
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  overflow:      hidden;
+  margin-bottom: 1.25rem;
+}
+
+.dettaglio-sezione-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0.75rem 1rem;
+  background:      var(--gray-50);
+  border-bottom:   1px solid var(--gray-200);
+}
+
+.dettaglio-sezione-titolo {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-700);
+}
+
+
+/* ------------------------------------------------------------
+   LISTA MEMBRI
+   Ogni membro ha avatar con iniziali, nome, email e
+   — se l'utente è admin — un bottone per rimuoverlo.
+   ------------------------------------------------------------ */
+.membri-list {
+  display:        flex;
+  flex-direction: column;
+}
+
+.membro-item {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+  padding:     0.75rem 1rem;
+  border-bottom: 1px solid var(--gray-100);
+  transition:  background var(--transition);
+}
+
+.membro-item:last-child {
+  border-bottom: none;
+}
+
+.membro-item:hover {
+  background: var(--gray-50);
+}
+
+/* Avatar con le iniziali del membro */
+.membro-avatar {
+  width:         36px;
+  height:        36px;
+  border-radius: var(--radius-full);
+  background:    var(--primary-light);
+  color:         var(--primary);
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  flex-shrink:   0;
+}
+
+.membro-info {
+  flex: 1;
+}
+
+.membro-nome {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  color:       var(--gray-900);
+}
+
+.membro-ruolo {
+  font-size:  var(--text-xs);
+  color:      var(--gray-400);
+  margin-top: 1px;
+}
+
+/* Bottone rimuovi membro — visibile solo all'admin
+   e non sul proprio nome */
+.btn-rimuovi-membro {
+  font-size:  var(--text-xs);
+  color:      var(--gray-400);
+  padding:    4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.btn-rimuovi-membro:hover {
+  background: var(--danger-light);
+  color:      var(--danger);
+}
+
+
+/* ------------------------------------------------------------
+   FORM AGGIUNGI MEMBRO
+   Input email e bottone affiancati — visibile solo agli admin.
+   ------------------------------------------------------------ */
+.aggiungi-membro {
+  display:  flex;
+  gap:      0.5rem;
+  padding:  0.75rem 1rem;
+  border-top: 1px solid var(--gray-100);
+  background: var(--gray-50);
+}
+
+.aggiungi-membro .form-control {
+  flex: 1;
+  /* Altezza ridotta per stare in linea con il bottone sm */
+  padding: 0.375rem 0.875rem;
+}
+
+
+/* ------------------------------------------------------------
+   ZONA PERICOLOSA
+   Sezione rossa in fondo al modal — visibile solo al creatore.
+   Il bordo rosso segnala visivamente che le azioni qui
+   sono irreversibili.
+   ------------------------------------------------------------ */
+.zona-pericolosa {
+  border:        1px solid var(--danger-light);
+  border-radius: var(--radius-md);
+  padding:       1rem;
+  background:    #fff5f5;
+}
+
+.zona-pericolosa-titolo {
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-semibold);
+  color:         var(--danger);
+  margin-bottom: 0.375rem;
+}
+
+.zona-pericolosa-testo {
+  font-size:     var(--text-sm);
+  color:         var(--gray-600);
+  margin-bottom: 0.875rem;
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVE — mobile
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            1rem;
+  }
+
+  .gruppi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .aggiungi-membro {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<!--
+  quiz.html
+  Pagina dei quiz — permette di creare quiz con domande
+  a risposta multipla o aperta, e di eseguirli per
+  prepararsi alle verifiche.
+  La pagina ha tre "viste" gestite via JS:
+  - lista quiz
+  - dettaglio quiz con domande
+  - esecuzione quiz (modalità studio)
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Quiz</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/quiz.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="page-content">
+    <div class="container">
+
+
+      <!-- VISTA 1: LISTA QUIZ
+           Mostrata di default — lista di tutti i quiz dell'utente.
+           Le altre viste vengono mostrate via JS nascondendo questa. -->
+      <div id="vista-lista">
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Quiz</h1>
+            <p class="page-subtitle">Allenati con i tuoi quiz personalizzati.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-nuovo-quiz">
+            + Nuovo quiz
+          </button>
+        </div>
+
+        <div class="flex-center" id="quiz-loading" style="padding: 3rem">
+          <div class="spinner spinner-lg"></div>
+        </div>
+
+        <div class="quiz-grid" id="quiz-grid" hidden></div>
+
+        <div class="empty-state" id="quiz-empty" hidden>
+          <div class="empty-state-icon">🧠</div>
+          <div class="empty-state-title">Nessun quiz creato</div>
+          <div class="empty-state-text">
+            Crea il tuo primo quiz per allenarti alle verifiche.
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- VISTA 2: DETTAGLIO QUIZ
+           Mostrata quando l'utente apre un quiz —
+           lista domande con possibilità di aggiungerne di nuove. -->
+      <div id="vista-dettaglio" hidden>
+
+        <div class="page-header">
+          <!-- Bottone torna alla lista -->
+          <button class="btn btn-ghost" id="btn-torna-lista">
+            ← Tutti i quiz
+          </button>
+          <div class="dettaglio-azioni">
+            <!-- Bottone per iniziare il quiz in modalità studio -->
+            <button class="btn btn-primary" id="btn-inizia-quiz">
+              ▶ Inizia quiz
+            </button>
+            <button class="btn btn-danger btn-sm" id="btn-elimina-quiz">
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <!-- Intestazione quiz con titolo e materia -->
+        <div class="quiz-dettaglio-header card">
+          <h2 class="quiz-dettaglio-titolo" id="dettaglio-titolo"></h2>
+          <div class="quiz-dettaglio-meta">
+            <span class="badge badge-primary" id="dettaglio-materia" hidden></span>
+            <span class="text-muted text-sm" id="dettaglio-count"></span>
+          </div>
+        </div>
+
+        <!-- Lista domande -->
+        <div class="card" style="margin-top: 1rem">
+          <div class="card-header">
+            <h3 class="card-title">Domande</h3>
+            <button class="btn btn-outline btn-sm" id="btn-nuova-domanda">
+              + Aggiungi domanda
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="flex-center" id="domande-loading">
+              <div class="spinner spinner-lg"></div>
+            </div>
+            <ul class="domande-list" id="domande-list" hidden></ul>
+            <div class="empty-state" id="domande-empty" hidden>
+              <div class="empty-state-icon">❓</div>
+              <div class="empty-state-title">Nessuna domanda</div>
+              <div class="empty-state-text">
+                Aggiungi la prima domanda al quiz.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- VISTA 3: ESECUZIONE QUIZ
+           Modalità studio — una domanda alla volta con
+           le risposte mescolate. Mostra il risultato finale. -->
+      <div id="vista-quiz" hidden>
+
+        <!-- Barra di avanzamento -->
+        <div class="quiz-progress">
+          <div class="quiz-progress-bar">
+            <div class="quiz-progress-fill" id="progress-fill"></div>
+          </div>
+          <span class="quiz-progress-label" id="progress-label"></span>
+        </div>
+
+        <!-- Card domanda corrente -->
+        <div class="card quiz-domanda-card" id="domanda-card">
+          <div class="quiz-domanda-numero" id="domanda-numero"></div>
+          <h3 class="quiz-domanda-testo" id="domanda-testo"></h3>
+
+          <!-- Opzioni risposta multipla -->
+          <div class="quiz-opzioni" id="quiz-opzioni"></div>
+
+          <!-- Input risposta aperta -->
+          <div id="risposta-aperta-wrap" hidden>
+            <textarea
+              class="form-control"
+              id="risposta-aperta"
+              placeholder="Scrivi la tua risposta..."
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="quiz-azioni">
+            <button class="btn btn-ghost" id="btn-quiz-annulla">Annulla quiz</button>
+            <button class="btn btn-primary" id="btn-conferma-risposta">
+              Conferma risposta →
+            </button>
+          </div>
+        </div>
+
+        <!-- Card risultato — mostrata dopo ogni risposta -->
+        <div class="card quiz-risultato-card" id="risultato-card" hidden>
+          <div class="quiz-risultato-icona" id="risultato-icona"></div>
+          <h3 class="quiz-risultato-titolo" id="risultato-titolo"></h3>
+          <p class="quiz-risultato-testo" id="risultato-testo"></p>
+          <button class="btn btn-primary" id="btn-prossima-domanda">
+            Prossima domanda →
+          </button>
+        </div>
+
+        <!-- Card punteggio finale — mostrata alla fine del quiz -->
+        <div class="card quiz-finale-card" id="finale-card" hidden>
+          <div class="quiz-finale-icona" id="finale-icona"></div>
+          <h2 class="quiz-finale-titolo">Quiz completato!</h2>
+          <div class="quiz-finale-score" id="finale-score"></div>
+          <p class="quiz-finale-testo" id="finale-testo"></p>
+          <div class="quiz-finale-azioni">
+            <button class="btn btn-outline" id="btn-riprova">🔄 Riprova</button>
+            <button class="btn btn-primary" id="btn-torna-dettaglio">← Torna al quiz</button>
+          </div>
+        </div>
+
+      </div>
+
+
+    </div>
+  </main>
+
+
+  <!-- MODAL NUOVO QUIZ -->
+  <div class="modal-overlay" id="modal-quiz">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuovo quiz</h3>
+        <button class="modal-close" id="modal-quiz-close">✕</button>
+      </div>
+      <form id="form-quiz" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="quiz-titolo">Titolo *</label>
+          <input
+            class="form-control"
+            type="text"
+            id="quiz-titolo"
+            placeholder="Es. Quiz capitolo 5 — Reti"
+            required
+          >
+          <span class="form-error" id="quiz-titolo-error"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="quiz-materia">Materia</label>
+          <select class="form-control" id="quiz-materia">
+            <option value="">Nessuna materia</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-quiz-annulla-modal">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-quiz-salva">
+            <span class="btn-text">Crea quiz</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL NUOVA DOMANDA -->
+  <div class="modal-overlay" id="modal-domanda">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuova domanda</h3>
+        <button class="modal-close" id="modal-domanda-close">✕</button>
+      </div>
+      <form id="form-domanda" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="domanda-tipo">Tipo</label>
+          <select class="form-control" id="domanda-tipo">
+            <option value="multipla">Risposta multipla</option>
+            <option value="aperta">Risposta aperta</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="domanda-testo-input">Domanda *</label>
+          <textarea
+            class="form-control"
+            id="domanda-testo-input"
+            placeholder="Scrivi la domanda..."
+            rows="3"
+            required
+          ></textarea>
+          <span class="form-error" id="domanda-testo-error"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="domanda-corretta">Risposta corretta *</label>
+          <input
+            class="form-control"
+            type="text"
+            id="domanda-corretta"
+            placeholder="La risposta giusta"
+            required
+          >
+          <span class="form-error" id="domanda-corretta-error"></span>
+        </div>
+
+        <!-- Risposte errate — visibili solo per tipo multipla -->
+        <div id="risposte-errate-wrap">
+          <div class="form-group">
+            <label class="form-label">Risposte errate</label>
+            <span class="form-hint">Aggiungi 2-3 risposte sbagliate per la modalità multipla.</span>
+          </div>
+          <div class="form-group">
+            <input class="form-control" type="text" id="errata-1" placeholder="Risposta errata 1">
+          </div>
+          <div class="form-group">
+            <input class="form-control" type="text" id="errata-2" placeholder="Risposta errata 2">
+          </div>
+          <div class="form-group">
+            <input class="form-control" type="text" id="errata-3" placeholder="Risposta errata 3">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-domanda-annulla">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-domanda-salva">
+            <span class="btn-text">Aggiungi</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL CONFERMA ELIMINAZIONE QUIZ -->
+  <div class="modal-overlay" id="modal-elimina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elimina quiz</h3>
+        <button class="modal-close" id="modal-elimina-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600)">
+        Sei sicuro di voler eliminare questo quiz? Verranno eliminate
+        anche tutte le domande al suo interno.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-elimina-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-elimina-conferma">
+          <span class="btn-text">Elimina</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/quiz.js"></script>
+
+</body>
+</html>

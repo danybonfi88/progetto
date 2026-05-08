@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<!--
+  gruppi.html
+  Pagina dei gruppi di studio — permette di creare gruppi,
+  aggiungere e rimuovere membri, condividere file ed eventi.
+  Gli admin hanno controllo completo, i membri solo la vista.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Gruppi</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/gruppi.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Gruppi</h1>
+          <p class="page-subtitle">Studia e condividi con i tuoi compagni.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nuovo-gruppo">
+          + Nuovo gruppo
+        </button>
+      </div>
+
+
+      <!-- LISTA GRUPPI
+           Ogni gruppo è una card con nome, numero membri,
+           ruolo dell'utente e azioni disponibili.
+           Popolata interamente via JS. -->
+      <div class="flex-center" id="gruppi-loading" style="padding: 3rem">
+        <div class="spinner spinner-lg"></div>
+      </div>
+
+      <div class="gruppi-grid" id="gruppi-grid" hidden></div>
+
+      <div class="empty-state" id="gruppi-empty" hidden>
+        <div class="empty-state-icon">👥</div>
+        <div class="empty-state-title">Nessun gruppo</div>
+        <div class="empty-state-text">
+          Crea un gruppo per studiare con i tuoi compagni.
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+
+  <!-- MODAL NUOVO GRUPPO -->
+  <div class="modal-overlay" id="modal-gruppo">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuovo gruppo</h3>
+        <button class="modal-close" id="modal-gruppo-close">✕</button>
+      </div>
+
+      <form id="form-gruppo" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="gruppo-nome">Nome *</label>
+          <input
+            class="form-control"
+            type="text"
+            id="gruppo-nome"
+            placeholder="Es. Gruppo 5A Informatica"
+            required
+          >
+          <span class="form-error" id="gruppo-nome-error"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="gruppo-descrizione">Descrizione</label>
+          <textarea
+            class="form-control"
+            id="gruppo-descrizione"
+            placeholder="A cosa serve questo gruppo?"
+          ></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-gruppo-annulla">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-gruppo-salva">
+            <span class="btn-text">Crea gruppo</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL DETTAGLIO GRUPPO
+       Mostra i membri del gruppo e le azioni disponibili.
+       Per gli admin: aggiungere/rimuovere membri, eliminare gruppo.
+       Per i membri: solo visualizzazione. -->
+  <div class="modal-overlay" id="modal-dettaglio">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <!-- Nome del gruppo — inserito via JS -->
+        <h3 class="modal-title" id="dettaglio-nome"></h3>
+        <button class="modal-close" id="modal-dettaglio-close">✕</button>
+      </div>
+
+      <!-- Descrizione del gruppo -->
+      <p class="dettaglio-descrizione" id="dettaglio-descrizione"></p>
+
+      <!-- Sezione membri -->
+      <div class="dettaglio-sezione">
+        <div class="dettaglio-sezione-header">
+          <h4 class="dettaglio-sezione-titolo">Membri</h4>
+          <!-- Contatore membri — inserito via JS -->
+          <span class="badge badge-gray" id="dettaglio-count"></span>
+        </div>
+
+        <!-- Lista membri — popolata via JS -->
+        <ul class="membri-list" id="membri-list"></ul>
+
+        <!-- Form aggiungi membro — visibile solo agli admin -->
+        <div class="aggiungi-membro" id="aggiungi-membro-wrap" hidden>
+          <input
+            class="form-control"
+            type="email"
+            id="nuovo-membro-email"
+            placeholder="Email del nuovo membro"
+          >
+          <button class="btn btn-outline btn-sm" id="btn-aggiungi-membro">
+            <span class="btn-text">Aggiungi</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Zona pericolosa — visibile solo al creatore del gruppo -->
+      <div class="zona-pericolosa" id="zona-pericolosa" hidden>
+        <h4 class="zona-pericolosa-titolo">Zona pericolosa</h4>
+        <p class="zona-pericolosa-testo">
+          Eliminando il gruppo perderai tutti i dati condivisi.
+        </p>
+        <button class="btn btn-danger btn-sm" id="btn-elimina-gruppo">
+          Elimina gruppo
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- MODAL CONFERMA ELIMINAZIONE GRUPPO -->
+  <div class="modal-overlay" id="modal-elimina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elimina gruppo</h3>
+        <button class="modal-close" id="modal-elimina-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600)">
+        Sei sicuro di voler eliminare questo gruppo? Tutti i file e gli eventi
+        condivisi rimarranno ma non saranno più associati al gruppo.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-elimina-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-elimina-conferma">
+          <span class="btn-text">Elimina</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/gruppi.js"></script>
+
+</body>
+</html>
