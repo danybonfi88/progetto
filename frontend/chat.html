@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!--
+  chat.html
+  Pagina della chat con il chatbot AI — interfaccia di
+  conversazione con l'assistente allo studio.
+  I messaggi vengono salvati nel database e la cronologia
+  viene passata al modello ad ogni richiesta per mantenere
+  il contesto della conversazione.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Chat AI</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/chat.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Chat AI 🤖</h1>
+          <p class="page-subtitle">Il tuo assistente personale per lo studio.</p>
+        </div>
+        <!-- Bottone per cancellare la cronologia dei messaggi -->
+        <button class="btn btn-ghost btn-sm" id="btn-clear">
+          🗑️ Cancella cronologia
+        </button>
+      </div>
+
+
+      <!-- AREA CHAT
+           Contenitore principale con i messaggi e l'input.
+           La struttura è divisa in tre parti:
+           - .chat-messages: lista messaggi scrollabile
+           - .chat-suggerimenti: domande rapide pre-impostate
+           - .chat-input-wrap: input e bottone invio -->
+      <div class="chat-container card">
+
+        <!-- LISTA MESSAGGI
+             Popolata via JS — ogni messaggio è una bolla
+             con stile diverso in base al mittente (user/bot).
+             Lo spinner è mostrato mentre il bot sta rispondendo. -->
+        <div class="chat-messages" id="chat-messages">
+
+          <!-- Stato iniziale — mostrato se non ci sono messaggi -->
+          <div class="chat-empty" id="chat-empty">
+            <div class="chat-empty-icona">🤖</div>
+            <h3 class="chat-empty-titolo">Ciao! Sono il tuo assistente allo studio.</h3>
+            <p class="chat-empty-testo">
+              Chiedimi qualsiasi cosa — spiegazioni, ripasso, esercizi.
+            </p>
+          </div>
+
+        </div>
+
+
+        <!-- SUGGERIMENTI
+             Domande rapide pre-impostate per iniziare la conversazione.
+             Spariscono dopo il primo messaggio inviato. -->
+        <div class="chat-suggerimenti" id="chat-suggerimenti">
+          <button class="suggerimento-btn" onclick="usaSuggerimento(this)">
+            Spiegami il teorema di Pitagora
+          </button>
+          <button class="suggerimento-btn" onclick="usaSuggerimento(this)">
+            Come si fa un'analisi del periodo?
+          </button>
+          <button class="suggerimento-btn" onclick="usaSuggerimento(this)">
+            Cos'è una VLAN e a cosa serve?
+          </button>
+          <button class="suggerimento-btn" onclick="usaSuggerimento(this)">
+            Spiegami il protocollo HTTP
+          </button>
+        </div>
+
+
+        <!-- INPUT MESSAGGIO
+             Textarea che si espande automaticamente al contenuto —
+             più comoda di un input singola riga per messaggi lunghi.
+             L'invio funziona sia col bottone che con Enter
+             (Shift+Enter per andare a capo). -->
+        <div class="chat-input-wrap">
+          <textarea
+            class="chat-input"
+            id="chat-input"
+            placeholder="Scrivi un messaggio..."
+            rows="1"
+          ></textarea>
+          <button class="chat-send-btn" id="btn-invia" disabled>
+            <!-- Il bottone è disabilitato finché non c'è testo —
+                 abilitato via JS con l'evento input -->
+            ➤
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+
+  <!-- MODAL CONFERMA CANCELLAZIONE CRONOLOGIA -->
+  <div class="modal-overlay" id="modal-clear">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Cancella cronologia</h3>
+        <button class="modal-close" id="modal-clear-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600)">
+        Sei sicuro di voler cancellare tutta la cronologia?
+        Il bot perderà il contesto della conversazione attuale.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-clear-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-clear-conferma">
+          <span class="btn-text">Cancella</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/chat.js"></script>
+
+</body>
+</html>

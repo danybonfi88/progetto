@@ -1,0 +1,417 @@
+/* ============================================================
+   pages/quiz.css
+   Stili specifici della pagina quiz — griglia card quiz,
+   vista dettaglio con domande, modalità esecuzione quiz
+   con barra avanzamento, opzioni risposta, risultato finale.
+   Importato solo in quiz.html.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   INTESTAZIONE PAGINA
+   ------------------------------------------------------------ */
+.page-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   1.5rem;
+}
+
+/* Gruppo bottoni a destra nell'intestazione dettaglio quiz */
+.dettaglio-azioni {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+}
+
+
+/* ------------------------------------------------------------
+   GRIGLIA QUIZ
+   Card affiancate per ogni quiz — simile alla griglia gruppi
+   ma con informazioni diverse: titolo, materia, num. domande.
+   ------------------------------------------------------------ */
+.quiz-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap:                   1rem;
+}
+
+
+/* ------------------------------------------------------------
+   CARD QUIZ
+   Mostra titolo, materia, numero domande e data creazione.
+   Cliccabile per aprire il dettaglio.
+   ------------------------------------------------------------ */
+.quiz-card {
+  background:    #ffffff;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding:       1.25rem;
+  display:       flex;
+  flex-direction: column;
+  gap:           0.75rem;
+  cursor:        pointer;
+  transition:    all var(--transition);
+}
+
+.quiz-card:hover {
+  box-shadow:   var(--shadow-md);
+  transform:    translateY(-2px);
+  border-color: var(--primary-light);
+}
+
+.quiz-card-titolo {
+  font-size:   var(--text-base);
+  font-weight: var(--font-semibold);
+  color:       var(--gray-900);
+  line-height: 1.3;
+}
+
+.quiz-card-footer {
+  display:     flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top:  1px solid var(--gray-100);
+  font-size:   var(--text-xs);
+  color:       var(--gray-400);
+}
+
+.quiz-card-domande {
+  display:     flex;
+  align-items: center;
+  gap:         0.375rem;
+}
+
+
+/* ------------------------------------------------------------
+   DETTAGLIO QUIZ — intestazione
+   Card con titolo e metadati del quiz aperto.
+   ------------------------------------------------------------ */
+.quiz-dettaglio-header {
+  margin-bottom: 0;
+}
+
+.quiz-dettaglio-titolo {
+  font-size:     var(--text-2xl);
+  font-weight:   var(--font-bold);
+  color:         var(--gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.quiz-dettaglio-meta {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+}
+
+
+/* ------------------------------------------------------------
+   LISTA DOMANDE
+   Ogni domanda mostra il testo, il tipo, la risposta corretta
+   e un bottone per eliminarla.
+   ------------------------------------------------------------ */
+.domande-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+}
+
+.domanda-item {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           1rem;
+  padding:       1rem;
+  border:        1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  transition:    box-shadow var(--transition);
+}
+
+.domanda-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Numero progressivo della domanda */
+.domanda-numero {
+  width:         28px;
+  height:        28px;
+  border-radius: var(--radius-full);
+  background:    var(--primary-light);
+  color:         var(--primary);
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  flex-shrink:   0;
+}
+
+.domanda-body {
+  flex: 1;
+}
+
+.domanda-testo {
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  color:         var(--gray-900);
+  margin-bottom: 0.375rem;
+  line-height:   1.5;
+}
+
+.domanda-risposta {
+  font-size:  var(--text-xs);
+  color:      var(--gray-400);
+}
+
+/* Risposta corretta evidenziata in verde */
+.domanda-risposta span {
+  color:       var(--success);
+  font-weight: var(--font-medium);
+}
+
+.domanda-azioni {
+  flex-shrink: 0;
+}
+
+
+/* ------------------------------------------------------------
+   ESECUZIONE QUIZ — barra avanzamento
+   Mostra quante domande sono state completate sul totale.
+   La barra si riempie progressivamente via JS aggiornando
+   la larghezza di .quiz-progress-fill.
+   ------------------------------------------------------------ */
+.quiz-progress {
+  display:       flex;
+  align-items:   center;
+  gap:           1rem;
+  margin-bottom: 1.5rem;
+}
+
+.quiz-progress-bar {
+  flex:          1;
+  height:        8px;
+  background:    var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow:      hidden;
+}
+
+.quiz-progress-fill {
+  height:        100%;
+  background:    var(--primary);
+  border-radius: var(--radius-full);
+  /* Transizione fluida quando la barra avanza */
+  transition:    width 0.4s ease;
+}
+
+.quiz-progress-label {
+  font-size:   var(--text-sm);
+  color:       var(--gray-400);
+  white-space: nowrap;
+}
+
+
+/* ------------------------------------------------------------
+   CARD DOMANDA
+   Mostra la domanda corrente con le opzioni di risposta.
+   ------------------------------------------------------------ */
+.quiz-domanda-card {
+  margin-bottom: 1rem;
+}
+
+.quiz-domanda-numero {
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  color:         var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.quiz-domanda-testo {
+  font-size:     var(--text-xl);
+  font-weight:   var(--font-semibold);
+  color:         var(--gray-900);
+  line-height:   1.4;
+  margin-bottom: 1.5rem;
+}
+
+
+/* ------------------------------------------------------------
+   OPZIONI RISPOSTA MULTIPLA
+   Bottoni cliccabili per ogni risposta.
+   Al click cambiano colore per indicare la selezione.
+   Dopo la conferma diventano verde (corretta) o rosso (errata).
+   ------------------------------------------------------------ */
+.quiz-opzioni {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.75rem;
+  margin-bottom:  1.5rem;
+}
+
+.quiz-opzione {
+  width:         100%;
+  padding:       0.875rem 1.25rem;
+  border:        2px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  text-align:    left;
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  color:         var(--gray-700);
+  background:    #ffffff;
+  cursor:        pointer;
+  transition:    all var(--transition);
+}
+
+.quiz-opzione:hover {
+  border-color: var(--primary);
+  color:        var(--primary);
+  background:   var(--primary-light);
+}
+
+/* Opzione selezionata dall'utente */
+.quiz-opzione.selezionata {
+  border-color: var(--primary);
+  background:   var(--primary-light);
+  color:        var(--primary);
+}
+
+/* Risposta corretta — mostrata dopo la conferma */
+.quiz-opzione.corretta {
+  border-color: var(--success);
+  background:   var(--success-light);
+  color:        var(--success);
+  cursor:       default;
+}
+
+/* Risposta errata selezionata — mostrata dopo la conferma */
+.quiz-opzione.errata {
+  border-color: var(--danger);
+  background:   var(--danger-light);
+  color:        var(--danger);
+  cursor:       default;
+}
+
+/* Disabilitiamo le opzioni non selezionate dopo la conferma */
+.quiz-opzione.disabilitata {
+  opacity: 0.5;
+  cursor:  default;
+}
+
+.quiz-azioni {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-top:      1rem;
+}
+
+
+/* ------------------------------------------------------------
+   CARD RISULTATO
+   Mostrata dopo ogni risposta — feedback immediato
+   con la spiegazione della risposta corretta.
+   ------------------------------------------------------------ */
+.quiz-risultato-card {
+  text-align:  center;
+  padding:     2rem;
+}
+
+.quiz-risultato-icona {
+  font-size:     3rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-risultato-titolo {
+  font-size:     var(--text-xl);
+  font-weight:   var(--font-semibold);
+  margin-bottom: 0.5rem;
+}
+
+/* Verde se risposta corretta, rosso se errata —
+   la classe viene aggiunta via JS */
+.quiz-risultato-titolo.corretta { color: var(--success); }
+.quiz-risultato-titolo.errata   { color: var(--danger);  }
+
+.quiz-risultato-testo {
+  font-size:     var(--text-sm);
+  color:         var(--gray-600);
+  margin-bottom: 1.5rem;
+  line-height:   1.6;
+}
+
+
+/* ------------------------------------------------------------
+   CARD FINALE
+   Mostrata al completamento del quiz con il punteggio totale.
+   Il colore del punteggio dipende dalla percentuale ottenuta —
+   verde se alta, giallo se media, rosso se bassa.
+   ------------------------------------------------------------ */
+.quiz-finale-card {
+  text-align: center;
+  padding:    3rem 2rem;
+}
+
+.quiz-finale-icona {
+  font-size:     4rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-finale-titolo {
+  font-size:     var(--text-2xl);
+  font-weight:   var(--font-bold);
+  color:         var(--gray-900);
+  margin-bottom: 1rem;
+}
+
+/* Punteggio grande al centro */
+.quiz-finale-score {
+  font-size:     3.5rem;
+  font-weight:   var(--font-bold);
+  margin-bottom: 0.5rem;
+  line-height:   1;
+}
+
+.quiz-finale-score.ottimo  { color: var(--success); }
+.quiz-finale-score.buono   { color: var(--warning); }
+.quiz-finale-score.scarso  { color: var(--danger);  }
+
+.quiz-finale-testo {
+  font-size:     var(--text-base);
+  color:         var(--gray-400);
+  margin-bottom: 2rem;
+}
+
+.quiz-finale-azioni {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             1rem;
+}
+
+
+/* ------------------------------------------------------------
+   RESPONSIVE — mobile
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            1rem;
+  }
+
+  .quiz-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-domanda-testo {
+    font-size: var(--text-lg);
+  }
+
+  .quiz-finale-score {
+    font-size: 2.5rem;
+  }
+
+  .quiz-finale-azioni {
+    flex-direction: column;
+  }
+}
