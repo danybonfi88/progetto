@@ -21,6 +21,8 @@ app.use(cors());
 trasforma in un oggetto JavaScript, e la mette in req.body */
 app.use(express.json());
 
+app.use(express.static('frontend'));
+
 
 // MIDDLEWARE x SINGOLE ROTTE
 /* Express ti dà uno strumento chiamato Router che è essenzialmente una mini-app Express
