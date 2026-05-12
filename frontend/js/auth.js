@@ -54,8 +54,8 @@ const toastContainer = document.getElementById('toast-container');
    SWITCH TAB
    Quando l'utente clicca su "Accedi" o "Registrati",
    mostriamo il form corrispondente e nascondiamo l'altro.
-   Usiamo data-tab per sapere quale form mostrare, così
-   non dobbiamo scrivere un if per ogni tab.
+   Usiamo .style.display per assicurarci che il CSS non 
+   sovrascriva l'attributo hidden.
    ------------------------------------------------------------ */
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -65,19 +65,18 @@ tabs.forEach(tab => {
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
 
-        /* Mostra il form corrispondente, nascondi l'altro.
-           L'attributo hidden è più semantico di display:none —
-           comunica agli screen reader che l'elemento non è visibile */
+        /* Gestione visibilità dei form */
         if (tab.dataset.tab === 'login') {
-            formLogin.hidden = false;
-            formReg.hidden   = true;
+            // Mostra login, nascondi registrazione
+            formLogin.style.display = 'block'; 
+            formReg.style.display   = 'none';
         } else {
-            formLogin.hidden = true;
-            formReg.hidden   = false;
+            // Mostra registrazione, nascondi login
+            formLogin.style.display = 'none';
+            formReg.style.display   = 'block';
         }
 
-        /* Pulisci gli errori quando si cambia tab —
-           errori di una tab non devono restare visibili nell'altra */
+        /* Pulisci gli errori quando si cambia tab */
         resetErrors();
     });
 });
@@ -153,6 +152,9 @@ formLogin.addEventListener('submit', async (e) => {
         } else {
             /* Il server ha risposto senza token — credenziali errate */
             showFormError(loginError, data.error || 'Credenziali non valide');
+            
+            /* AGGIUNTA: Mostriamo anche un toast per dare un feedback più forte */
+            showToast(data.error || 'Credenziali non valide', 'danger');
         }
 
     } catch (err) {

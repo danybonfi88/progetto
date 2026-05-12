@@ -35,7 +35,7 @@
         <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
         <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
         <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
-        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+        <a href="chat.html"        class="navbar-link" data-page="chat">Chat AI</a>
       </div>
       <div class="navbar-user">
         <div class="navbar-avatar" id="user-avatar"></div>
@@ -53,9 +53,7 @@
     <div class="container">
 
 
-      <!-- VISTA 1: LISTA QUIZ
-           Mostrata di default — lista di tutti i quiz dell'utente.
-           Le altre viste vengono mostrate via JS nascondendo questa. -->
+      <!-- VISTA 1: LISTA QUIZ -->
       <div id="vista-lista">
 
         <div class="page-header">
@@ -85,18 +83,14 @@
       </div>
 
 
-      <!-- VISTA 2: DETTAGLIO QUIZ
-           Mostrata quando l'utente apre un quiz —
-           lista domande con possibilità di aggiungerne di nuove. -->
+      <!-- VISTA 2: DETTAGLIO QUIZ -->
       <div id="vista-dettaglio" hidden>
 
         <div class="page-header">
-          <!-- Bottone torna alla lista -->
           <button class="btn btn-ghost" id="btn-torna-lista">
             ← Tutti i quiz
           </button>
           <div class="dettaglio-azioni">
-            <!-- Bottone per iniziare il quiz in modalità studio -->
             <button class="btn btn-primary" id="btn-inizia-quiz">
               ▶ Inizia quiz
             </button>
@@ -106,7 +100,6 @@
           </div>
         </div>
 
-        <!-- Intestazione quiz con titolo e materia -->
         <div class="quiz-dettaglio-header card">
           <h2 class="quiz-dettaglio-titolo" id="dettaglio-titolo"></h2>
           <div class="quiz-dettaglio-meta">
@@ -115,13 +108,18 @@
           </div>
         </div>
 
-        <!-- Lista domande -->
         <div class="card" style="margin-top: 1rem">
           <div class="card-header">
             <h3 class="card-title">Domande</h3>
-            <button class="btn btn-outline btn-sm" id="btn-nuova-domanda">
-              + Aggiungi domanda
-            </button>
+            <div class="flex-gap-sm">
+              <!-- NUOVO BOTTONE: Generazione AI -->
+              <button class="btn btn-outline btn-sm" id="btn-genera-ai">
+                ✨ Genera con AI
+              </button>
+              <button class="btn btn-outline btn-sm" id="btn-nuova-domanda">
+                + Aggiungi domanda
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <div class="flex-center" id="domande-loading">
@@ -132,7 +130,7 @@
               <div class="empty-state-icon">❓</div>
               <div class="empty-state-title">Nessuna domanda</div>
               <div class="empty-state-text">
-                Aggiungi la prima domanda al quiz.
+                Aggiungi la prima domanda al quiz o usa l'AI per generarle.
               </div>
             </div>
           </div>
@@ -141,12 +139,9 @@
       </div>
 
 
-      <!-- VISTA 3: ESECUZIONE QUIZ
-           Modalità studio — una domanda alla volta con
-           le risposte mescolate. Mostra il risultato finale. -->
+      <!-- VISTA 3: ESECUZIONE QUIZ -->
       <div id="vista-quiz" hidden>
 
-        <!-- Barra di avanzamento -->
         <div class="quiz-progress">
           <div class="quiz-progress-bar">
             <div class="quiz-progress-fill" id="progress-fill"></div>
@@ -154,15 +149,12 @@
           <span class="quiz-progress-label" id="progress-label"></span>
         </div>
 
-        <!-- Card domanda corrente -->
         <div class="card quiz-domanda-card" id="domanda-card">
           <div class="quiz-domanda-numero" id="domanda-numero"></div>
           <h3 class="quiz-domanda-testo" id="domanda-testo"></h3>
 
-          <!-- Opzioni risposta multipla -->
           <div class="quiz-opzioni" id="quiz-opzioni"></div>
 
-          <!-- Input risposta aperta -->
           <div id="risposta-aperta-wrap" hidden>
             <textarea
               class="form-control"
@@ -180,7 +172,6 @@
           </div>
         </div>
 
-        <!-- Card risultato — mostrata dopo ogni risposta -->
         <div class="card quiz-risultato-card" id="risultato-card" hidden>
           <div class="quiz-risultato-icona" id="risultato-icona"></div>
           <h3 class="quiz-risultato-titolo" id="risultato-titolo"></h3>
@@ -190,7 +181,6 @@
           </button>
         </div>
 
-        <!-- Card punteggio finale — mostrata alla fine del quiz -->
         <div class="card quiz-finale-card" id="finale-card" hidden>
           <div class="quiz-finale-icona" id="finale-icona"></div>
           <h2 class="quiz-finale-titolo">Quiz completato!</h2>
@@ -289,7 +279,6 @@
           <span class="form-error" id="domanda-corretta-error"></span>
         </div>
 
-        <!-- Risposte errate — visibili solo per tipo multipla -->
         <div id="risposte-errate-wrap">
           <div class="form-group">
             <label class="form-label">Risposte errate</label>
@@ -316,6 +305,54 @@
           </button>
         </div>
 
+      </form>
+    </div>
+  </div>
+
+
+  <!-- MODAL NUOVO: GENERAZIONE AI DOMANDE -->
+<div class="modal-overlay" id="modal-genera-ai">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Genera domande con AI ✨</h3>
+        <button class="modal-close" id="modal-ai-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600); margin-bottom: 1.5rem;">
+        Indica l'argomento specifico e l'intelligenza artificiale genererà automaticamente le domande per questo quiz.
+      </p>
+      <form id="form-genera-ai" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="ai-argomento">Argomento *</label>
+          <input 
+            class="form-control" 
+            type="text" 
+            id="ai-argomento" 
+            placeholder="Es. Le cause della Rivoluzione Francese" 
+            required
+          >
+          <span class="form-error" id="ai-argomento-error"></span>
+        </div>
+
+        <!-- NUOVO CAMPO: Numero di domande -->
+        <div class="form-group">
+          <label class="form-label" for="ai-numero">Quante domande generare?</label>
+          <select class="form-control" id="ai-numero">
+            <option value="5">5 domande</option>
+            <option value="10">10 domande</option>
+            <option value="15">15 domande</option>
+            <option value="20">20 domande</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-ai-annulla">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-ai-conferma">
+            <span class="btn-text">Genera domande</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
       </form>
     </div>
   </div>

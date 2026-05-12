@@ -139,6 +139,14 @@ const btnEliminaConferma = document.getElementById('btn-elimina-conferma');
 /* Toast */
 const toastContainer = document.getElementById('toast-container');
 
+/* Modal generazione AI */
+const modalGeneraAi    = document.getElementById('modal-genera-ai');
+const modalAiClose     = document.getElementById('modal-ai-close');
+const btnGeneraAi      = document.getElementById('btn-genera-ai');
+const btnAiAnnulla     = document.getElementById('btn-ai-annulla');
+const formGeneraAi     = document.getElementById('form-genera-ai');
+const aiArgomento      = document.getElementById('ai-argomento');
+const aiNumero = document.getElementById('ai-numero');
 
 /* ------------------------------------------------------------
    GESTIONE VISTE
@@ -665,6 +673,73 @@ btnQuizAnnulla.addEventListener('click', () => {
     mostraVista('dettaglio');
 });
 
+/* ------------------------------------------------------------
+   GENERAZIONE AI DOMANDE
+   Gestisce l'apertura del modal, la validazione dell'argomento
+   e la chiamata all'API per popolare il quiz automaticamente.
+   ------------------------------------------------------------ */
+
+// Apre il modal di generazione AI
+function apriModalGeneraAi() {
+    formGeneraAi.reset();
+    document.getElementById('ai-argomento-error').textContent = '';
+    modalGeneraAi.classList.add('active');
+}
+
+// Chiude il modal di generazione AI
+function chiudiModalGeneraAi() {
+    modalGeneraAi.classList.remove('active');
+}
+
+// Event listener per l'apertura e la chiusura
+btnGeneraAi.addEventListener('click', apriModalGeneraAi);
+modalAiClose.addEventListener('click', chiudiModalGeneraAi);
+btnAiAnnulla.addEventListener('click', chiudiModalGeneraAi);
+
+// Chiude il modal cliccando sull'overlay
+modalGeneraAi.addEventListener('click', (e) => {
+    if (e.target === modalGeneraAi) chiudiModalGeneraAi();
+});
+
+// Gestisce l'invio del modulo di generazione
+formGeneraAi.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const argomento = aiArgomento.value.trim();
+    const numero    = aiNumero.value; // Leggiamo il numero selezionato (es. "5", "10")
+
+    if (!argomento) {
+        document.getElementById('ai-argomento-error').textContent = 'L\'argomento è obbligatorio';
+        return;
+    }
+
+    setLoading('btn-ai-conferma', true);
+
+    try {
+        /* Passiamo sia l'argomento che il numero di domande desiderate */
+        const data = await api.generateQuizQuestions(quizCorrente.id, argomento, numero);
+        
+        if (data.message) {
+            showToast(`AI: ${data.message}`, 'success');
+            chiudiModalGeneraAi();
+
+            /* Fondamentale: dopo la generazione, dobbiamo aggiornare la lista 
+               di domande visualizzata nella vista dettaglio per mostrare i nuovi inserimenti */
+            domandeCorrente = await api.getDomande(quizCorrente.id);
+            mostraDomande();
+
+            /* Aggiorniamo anche il contatore nella lista generale dei quiz */
+            const q = tuttiIQuiz.find(q => q.id === quizCorrente.id);
+            if (q) q.numero_domande = domandeCorrente.length;
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Errore durante la generazione AI', 'danger');
+    } finally {
+        // Ripristiniamo il bottone
+        setLoading('btn-ai-conferma', false);
+    }
+});
 
 /* ------------------------------------------------------------
    CARICAMENTO DATI

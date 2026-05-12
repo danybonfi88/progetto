@@ -61,18 +61,14 @@ async function request(method, endpoint, body = null) {
     /* Eseguiamo la fetch verso il backend */
     const res = await fetch(BASE_URL + endpoint, options);
 
-    /* Se il server risponde con 401 (token mancante) o
-       403 (token non valido o scaduto), l'utente non è più
-       autenticato — puliamo il localStorage e lo mandiamo
-       al login. Questo gestisce automaticamente la scadenza
-       del token dopo 7 giorni senza dover controllare in
-       ogni singola pagina */
-    if (res.status === 401 || res.status === 403) {
+    /* Se il server risponde con 401 o 403, l'utente non è autenticato.
+       ATTENZIONE: Non facciamo il redirect se l'errore avviene durante il LOGIN,
+       perché in quel caso l'errore indica semplicemente 'credenziali errate' 
+       e non una sessione scaduta. */
+    if ((res.status === 401 || res.status === 403) && !endpoint.includes('/auth/login')) {
         localStorage.removeItem('token');
         localStorage.removeItem('nome');
         window.location.href = 'index.html';
-        /* Ritorniamo null per evitare che il codice chiamante
-           provi a leggere una risposta che non arriverà */
         return null;
     }
 
@@ -255,10 +251,13 @@ const api = {
     creaDomanda: (id, data) =>
         request('POST', `/quiz/${id}/domande`, data),
 
+    /* POST /api/quiz/:id/generate — genera automaticamente domande per un quiz tramite AI */
+generateQuizQuestions: (id, argomento, numero) => 
+    request('POST', `/quiz/${id}/generate`, { argomento, numero }),
+    
     /* DELETE /api/quiz/:id/domande/:domandaId — elimina una domanda */
     eliminaDomanda: (quizId, domandaId) =>
         request('DELETE', `/quiz/${quizId}/domande/${domandaId}`),
-
 
     /* ----------------------------------------------------------
        CHAT

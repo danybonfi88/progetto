@@ -178,6 +178,128 @@ router.post('/:id/domande', async (req, res) => {
     }
 });
 
+// POST /api/quiz/:id/generate — Genera automaticamente domande per un quiz esistente tramite AI
+router.post('/:id/generate', async (req, res) => {
+    const quizId = req.params.id;
+    // Estraiamo argomento E numero dal body
+    const { argomento, numero } = req.body;
+
+    if (!argomento) {
+        return res.status(400).json({ error: 'L\'argomento per le domande è obbligatorio' });
+    }
+
+    // Se l'utente non ha mandato un numero, usiamo 5 come default
+    const quantita = numero || 5;
+
+    try {
+        const [quiz] = await db.query(
+            'SELECT titolo FROM quiz WHERE id = ? AND utente_id = ?', 
+            [quizId, req.user.id]
+        );
+
+        if (quiz.length === 0) {
+            return res.status(404).json({ error: 'Quiz non trovato o non autorizzato' });
+        }
+
+        // 2. CHIAMATA ALL'AI (GROQ)
+        /* Definisco un prompt di sistema molto rigoroso per costringere l'AI a non "chiacchierare" 
+           ma a restituire solo un formato dati che il computer può leggere (JSON) */
+        const promptSistema = `
+            Sei un esperto creatore di quiz didattici. 
+            Genera un set di ${quantita} domande basate sull'argomento fornito.
+            Devi rispondere ESCLUSIVAMENTE con un array JSON, senza alcun testo prima o dopo.
+            Ogni oggetto nell'array deve avere esattamente questa struttura:
+            {
+                "testo": "Testo della domanda",
+                "risposta_corretta": "La risposta esatta",
+                "risposte_errate": ["Sbagliata1", "Sbagliata2", "Sbagliata3"],
+                "tipo": "multipla"
+            }
+        `;
+
+        // Eseguo la fetch verso l'API di Groq
+        const rispostaAI = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}` // Chiave segreta dal file .env
+            },
+            body: JSON.stringify({
+                model: 'llama-3.1-8b-instant',
+                messages: [
+                    { role: 'system', content: promptSistema },
+                    { role: 'user', content: `Genera domande per il quiz "${quiz[0].titolo}". Argomento specifico: ${argomento}` }
+                ]
+            })
+        });
+
+        // estraggo il contenuto della risposta
+        const data = await rispostaAI.json();
+        let contenuto = data.choices[0].message.content;
+
+        // PULIZIA DEL JSON: a volte l'AI avvolge il JSON in blocchi di codice markdown (es: ```json ... ```)
+        // uso .replace() con una regex per rimuovere questi simboli, altrimenti JSON.parse() darebbe errore
+        contenuto = contenuto.replace(/```json|```/g, '').trim();
+        
+        // trasformo la stringa JSON in un vero array di oggetti JavaScript
+        const domandeAI = JSON.parse(contenuto); 
+        
+        // Gestione flessibile: se l'AI ha restituito l'array direttamente o dentro un oggetto (es. { "domande": [...] })
+        const listaDomande = Array.isArray(domandeAI) ? domandeAI : (domandeAI.domande || domandeAI.quiz);
+
+        // se dopo il parsing non abbiamo un array valido di domande -> 500
+        if (!listaDomande || !Array.isArray(listaDomande)) {
+            throw new Error('L\'AI non ha restituito un formato di domande valido');
+        }
+
+        // 3. SALVATAGGIO NEL DATABASE
+        // Uso una transazione perché l'inserimento di più domande deve essere un'operazione "tutto o niente"
+        const conn = await db.getConnection();
+        try {
+            // avvio la transazione
+            await conn.beginTransaction();
+
+            // ciclo attraverso l'array di domande generate dall'AI e le inserisco una per una nel DB
+            for (const d of listaDomande) {
+                await conn.query(
+                    `INSERT INTO domande (quiz_id, testo, risposta_corretta, risposte_errate, tipo) 
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [
+                        quizId, 
+                        d.testo, 
+                        d.risposta_corretta, 
+                        JSON.stringify(d.risposte_errate), // l'array delle risposte errate va convertito in stringa JSON per MySQL
+                        d.tipo || 'multipla'
+                    ]
+                );
+            }
+
+            // se tutte le inserzioni sono andate a buon fine, confermo i cambiamenti nel DB
+            await conn.commit();
+            
+            // restituisco 201 (Created) con il numero di domande generate
+            res.status(201).json({ 
+                message: 'Domande generate e inserite con successo!', 
+                numero_domande: listaDomande.length 
+            });
+
+        } catch (dbErr) {
+            // se avviene un errore durante l'inserimento di una qualsiasi domanda, annullo tutto (rollback)
+            // così non rimaniamo con un quiz a metà (es. solo 2 domande su 5)
+            await conn.rollback();
+            throw dbErr; // lancio l'errore per farlo catturare dal catch esterno
+        } finally {
+            // rilascio la connessione al pool di MySQL
+            conn.release();
+        }
+
+    // Se qualcosa va storto in qualsiasi punto del try (errore API, errore Parsing, errore DB), l'errore viene catturato qui
+    } catch (err) {
+        console.error("Errore generazione quiz:", err);
+        res.status(500).json({ error: 'Errore interno durante la generazione automatica delle domande' });
+    }
+});
+
 
 // DELETE /api/quiz/:id/domande/:domandaId
 router.delete('/:id/domande/:domandaId', async (req, res) => {
