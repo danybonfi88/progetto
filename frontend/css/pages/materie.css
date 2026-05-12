@@ -53,3 +53,22 @@
 .btn-elimina-materia:hover {
     background: var(--red-50);
 }
+
+.materia-azioni {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-modifica-materia, .btn-elimina-materia {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.4rem;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-modifica-materia:hover {
+    background: var(--gray-100);
+}

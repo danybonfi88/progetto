@@ -183,22 +183,30 @@ function mostraGruppi() {
    al ruolo dell'utente loggato.
    ------------------------------------------------------------ */
 async function apriDettaglio(id) {
-    /* Troviamo il gruppo nella lista locale */
+    /* Troviamo il gruppo nella lista locale per popolare i dati base */
     gruppoCorrente = tuttiIGruppi.find(g => g.id === id);
     if (!gruppoCorrente) return;
 
-    /* Popoliamo il modal con i dati del gruppo */
+    /* Popoliamo l'intestazione del modal con nome e descrizione */
     dettaglioNome.textContent        = gruppoCorrente.nome;
     dettaglioDescrizione.textContent = gruppoCorrente.descrizione || '';
     dettaglioDescrizione.hidden      = !gruppoCorrente.descrizione;
     dettaglioCount.textContent       = `${gruppoCorrente.numero_membri} membri`;
 
-    /* Mostriamo le azioni admin solo se l'utente è admin */
+    /* 
+       GESTIONE PERMESSI:
+       Mostriamo le sezioni "Aggiungi membro" e "Zona Pericolosa" 
+       solo se l'utente loggato ha il ruolo di 'admin' in questo gruppo.
+    */
     const isAdmin = gruppoCorrente.ruolo === 'admin';
     aggiungiMembroWrap.hidden = !isAdmin;
     zonaPericolosa.hidden     = !isAdmin;
 
-    /* Svuotiamo la lista membri e mostriamo uno spinner */
+    /* 
+       CARICAMENTO MEMBRI:
+       Invece di mostrare una lista vuota, mostriamo uno spinner 
+       mentre interroghiamo il server per ottenere i membri reali.
+    */
     membroList.innerHTML = `
         <li style="padding: 1rem; text-align: center">
             <div class="spinner"></div>
@@ -207,17 +215,17 @@ async function apriDettaglio(id) {
 
     modalDettaglio.classList.add('active');
 
-    /* Carichiamo i membri del gruppo — non li abbiamo nella lista
-       principale perché sarebbe troppo dato da caricare all'inizio.
-       Li carichiamo solo quando l'utente apre il dettaglio. */
     try {
-        /* Nota: questo endpoint non è ancora implementato nel backend —
-           in un progetto completo aggiungeresti GET /api/gruppi/:id/membri.
-           Per ora usiamo i dati che abbiamo già. */
-        mostraMembri([]);
+        /* Chiamiamo l'API per recuperare l'elenco aggiornato dei membri */
+        const membri = await api.getMembriGruppo(id);
+        
+        /* Passiamo l'array dei membri appena ricevuti alla funzione di disegno */
+        mostraMembri(membri);
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento dei membri', 'danger');
+        /* In caso di errore, mostriamo la lista vuota per non lasciare lo spinner */
+        mostraMembri([]);
     }
 }
 
@@ -276,32 +284,47 @@ modalDettaglio.addEventListener('click', (e) => {
 
 
 /* ------------------------------------------------------------
-   AGGIUNGI MEMBRO
-   L'admin inserisce l'email del nuovo membro e lo aggiunge
-   al gruppo. La route backend cerca l'utente per email.
+   AGGIUNGI MEMBRO AL GRUPPO
+   Gestisce l'invio dell'email al backend e la risposta del server.
+   Grazie alla nuova logica di api.js, l'errore 404 (utente inesistente)
+   verrà correttamente intercettato e mostrato all'utente.
    ------------------------------------------------------------ */
 btnAggiungiMembro.addEventListener('click', async () => {
     const email = nuovoMembroEmail.value.trim();
     if (!email || !gruppoCorrente) return;
 
+    /* Mostriamo lo spinner e disabilitiamo il bottone per evitare doppi invii */
     setLoading('btn-aggiungi-membro', true);
 
     try {
+        /* Chiamiamo l'API per aggiungere il membro. 
+           Se l'utente non esiste, api.js ora lancia un Error che ci porta direttamente al catch */
         await api.aggiungiMembro(gruppoCorrente.id, email);
-        showToast('Membro aggiunto', 'success');
+        
+        /* Questo punto viene raggiunto SOLO se il server ha risposto con successo (200-299) */
+        showToast('Membro aggiunto con successo', 'success');
         nuovoMembroEmail.value = '';
-        /* Ricarichiamo i dati per aggiornare il contatore membri */
+        
+        /* Ricarichiamo i dati dal server per aggiornare l'elenco e il contatore membri */
         await caricaDati();
-        /* Aggiorniamo il contatore nel modal senza chiuderlo */
+        
+        /* Aggiorniamo il contatore nel modal di dettaglio senza chiuderlo */
         const gruppoAggiornato = tuttiIGruppi.find(g => g.id === gruppoCorrente.id);
         if (gruppoAggiornato) {
             gruppoCorrente = gruppoAggiornato;
             dettaglioCount.textContent = `${gruppoAggiornato.numero_membri} membri`;
         }
     } catch (err) {
-        console.error(err);
-        showToast('Errore nell\'aggiunta del membro', 'danger');
+        /* ----------------------------------------------------------------------------
+           GESTIONE ERRORI DINAMICA:
+           L'oggetto 'err' contiene l'errore lanciato da api.js.
+           err.message contiene il messaggio esatto inviato dal backend (es: "Utente non trovato").
+           Mostriamo questo messaggio in un toast rosso per dare un feedback preciso all'utente.
+           ---------------------------------------------------------------------------- */
+        console.error("Errore durante l'aggiunta membro:", err);
+        showToast(err.message, 'danger'); 
     } finally {
+        /* Ripristiniamo lo stato del bottone indipendentemente dall'esito dell'operazione */
         setLoading('btn-aggiungi-membro', false);
     }
 });

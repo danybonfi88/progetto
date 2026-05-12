@@ -43,6 +43,35 @@ router.get('/', async (req, res) => {
     }
 });
 
+/* ----------------------------------------------------------------------------
+   GET /api/gruppi/:id/membri
+   Questa rotta recupera l'elenco di tutti i membri di un gruppo specifico.
+   Esegue una JOIN tra la tabella 'utenti_gruppi' (per il ruolo) e 
+   la tabella 'utenti' (per ottenere il nome reale della persona).
+   ---------------------------------------------------------------------------- */
+router.get('/:id/membri', async (req, res) => {
+    try {
+        /* 
+           ESTRAGO: l'id utente, il nome dell'utente e il suo ruolo nel gruppo.
+           JOIN: collego utenti_gruppi con utenti usando l'id dell'utente.
+           FILTRO: prendo solo i membri che appartengono al gruppo richiesto (:id).
+        */
+        const [rows] = await db.query(
+            `SELECT u.id, u.nome, ug.ruolo 
+             FROM utenti_gruppi ug 
+             JOIN utenti u ON ug.utente_id = u.id 
+             WHERE ug.gruppo_id = ?`, 
+            [req.params.id]
+        );
+
+        // Restituisco la lista dei membri (res.json usa 200 di default)
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore interno nel caricamento membri' });
+    }
+});
+
 
 // POST /api/gruppi
 router.post('/', async (req, res) => {

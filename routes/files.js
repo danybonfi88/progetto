@@ -11,6 +11,8 @@ const fs = require('fs');
 const db = require('../config/db');
 /* auth: importa il file auth.js, salvato in un'altra cartella del progetto*/
 const auth = require('../middleware/auth');
+/* jsonwebtoken: utile per creazione e verifica dei jwt*/
+const jwt = require('jsonwebtoken');
 /* router: creo il Router specifico di questa rotta, su cui registro gli endpoint specifici*/
 const router = express.Router();
 
@@ -45,6 +47,99 @@ const upload = multer({
     // Il campo limits imposta un limite massimo alla dimensione del file.
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
+
+/* ----------------------------------------------------------------------------
+   SISTEMA DI DOWNLOAD PROTETTO
+   Questa rotta è posizionata PRIMA di router.use(auth) perché i download 
+   tramite link (window.open) non possono inviare Header Authorization.
+   Pertanto, verifichiamo il token manualmente tramite la Query String (?token=...).
+   ---------------------------------------------------------------------------- */
+router.get('/:id/download', async (req, res) => {
+    try {
+        // 1. ESTRAZIONE DATI
+        // l'id del file è preso dal parametro dinamico dell'URL (:id)
+        const fileId = req.params.id;
+        // il token JWT viene estratto dalla query string (?token=...)
+        const token = req.query.token;
+
+        // Se il token non è presente nell'URL, l'accesso è negato -> 401
+        if (!token) {
+            return res.status(401).json({ error: 'Token mancante' });
+        }
+
+        /* ----------------------------------------------------------------------------
+           VERIFICA AUTENTICAZIONE MANUALE
+           Poiché abbiamo saltato il middleware auth.js, dobbiamo verificare il token 
+           manualmente. jwt.verify() decodifica il token e ne controlla la firma 
+           usando la SECRET salvata nel file .env. Se il token è scaduto o alterato, 
+ la funzione lancia un errore che verrà catturato dal blocco catch.
+           ---------------------------------------------------------------------------- */
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // Estraiamo l'id utente dal payload del token decodificato
+        const userId = decoded.id;
+
+        /* ----------------------------------------------------------------------------
+           CONTROLLO ACCESSORIE E PERMESSI
+           Non basta che il token sia valido; dobbiamo assicurarci che l'utente abbia 
+           il diritto di vedere questo specifico file.
+           La query verifica due condizioni:
+           - l'utente è il proprietario del file (utente_id = ?)
+           - OPPURE il file appartiene a un gruppo di cui l'utente fa parte 
+             (sottoquery su utenti_gruppi)
+           ---------------------------------------------------------------------------- */
+        const [rows] = await db.query(
+            `SELECT path_server, tipo_mime FROM files 
+             WHERE id = ? AND (utente_id = ? OR gruppo_id IN (SELECT gruppo_id FROM utenti_gruppi WHERE utente_id = ?))`,
+            [fileId, userId, userId]
+        );
+
+        // Se la query non restituisce righe, il file non esiste o l'utente non ha i permessi -> 404
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'File non trovato o accesso negato' });
+        }
+
+        const file = rows[0];
+        
+        /* ----------------------------------------------------------------------------
+           CONFIGURAZIONE RISPOSTA BROWSER (INLINE vs ATTACHMENT)
+           Per evitare che il browser scarichi automaticamente il file, dobbiamo 
+           istruirlo correttamente tramite gli Header HTTP.
+           ---------------------------------------------------------------------------- */
+        
+        // Impostiamo il Content-Type (es. 'image/png' o 'application/pdf').
+        // Questo dice al browser: "Quello che sto per mandarti è un'immagine/PDF".
+        res.setHeader('Content-Type', file.tipo_mime);
+        
+        // Impostiamo Content-Disposition su 'inline'. 
+        // 'attachment' forzerebbe il download; 'inline' suggerisce al browser 
+        // di aprire il file direttamente in una scheda se supporta il formato.
+        res.setHeader('Content-Disposition', 'inline');
+
+        /* ----------------------------------------------------------------------------
+           INVIO DEL FILE FISICO
+           Usiamo res.sendFile() invece di res.download().
+           path.resolve() trasforma il percorso relativo (es. 'uploads/foto.jpg') 
+           in un percorso assoluto (es. 'C:/progetti/app/uploads/foto.jpg'), 
+           che è l'unico formato accettato da sendFile.
+           ---------------------------------------------------------------------------- */
+        res.sendFile(path.resolve(file.path_server), (err) => {
+            if (err) {
+                console.error("Errore fisico nel recupero del file:", err);
+                /* Se il file è stato eliminato dal disco ma è ancora nel DB,
+                   mandiamo un errore 404 solo se non abbiamo già inviato l'header */
+                if (!res.headersSent) {
+                    res.status(404).json({ error: 'Il file non è più disponibile sul server' });
+                }
+            }
+        });
+
+    } catch (err) {
+        /* In caso di token scaduto o firma non valida, jwt.verify lancia un errore */
+        console.error("Errore durante la verifica del token di download:", err);
+        res.status(403).json({ error: 'Token non valido o scaduto' });
+    }
+});
+
 
 // Tutte le route qui sotto richiedono il login
 router.use(auth);

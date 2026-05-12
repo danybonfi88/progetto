@@ -57,6 +57,42 @@ router.post('/', async (req, res) => {
     }
 });
 
+/* ----------------------------------------------------------------------------
+   PUT /api/materie/:id
+   Permette l'aggiornamento del nome e/o del colore di una materia esistente.
+   Viene controllato che la materia appartenga all'utente loggato per evitare 
+   che un utente possa modificare materie di altri conoscendone l'ID.
+   ---------------------------------------------------------------------------- */
+router.put('/:id', async (req, res) => {
+    const { nome, colore } = req.body;
+
+    // Validazione: il nome è obbligatorio per evitare materie senza nome
+    if (!nome) {
+        return res.status(400).json({ error: 'Il nome della materia è obbligatorio' });
+    }
+
+    try {
+        /* 
+           Eseguiamo l'UPDATE della tabella materie.
+           Filtriamo per ID e per utente_id per garantire la sicurezza.
+        */
+        const [result] = await db.query(
+            'UPDATE materie SET nome = ?, colore = ? WHERE id = ? AND utente_id = ?',
+            [nome, colore || '#6366F1', req.params.id, req.user.id]
+        );
+
+        // Se affectedRows è 0, significa che la materia non esiste o non appartiene all'utente
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Materia non trovata o non autorizzata' });
+        }
+
+        res.json({ message: 'Materia aggiornata con successo' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
 
 // DELETE /api/materie/:id — elimina una materia
 router.delete('/:id', async (req, res) => {

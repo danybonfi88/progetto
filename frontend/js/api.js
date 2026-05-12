@@ -28,6 +28,7 @@ const BASE_URL = '/api';
    - aggiungere il token JWT all'header Authorization
    - serializzare il body in JSON se presente
    - gestire il redirect al login se il token è scaduto
+   - verificare se la risposta del server è positiva (res.ok)
    - restituire la risposta già parsata come oggetto JavaScript
    ------------------------------------------------------------ */
 async function request(method, endpoint, body = null) {
@@ -42,8 +43,6 @@ async function request(method, endpoint, body = null) {
             /* Diciamo al server che mandiamo JSON */
             'Content-Type': 'application/json',
             /* Aggiungiamo il token JWT all'header Authorization.
-               Il server lo legge in middleware/auth.js per
-               verificare che l'utente sia autenticato.
                Se non c'è token (pagina pubblica), l'header
                viene omesso con una stringa vuota */
             'Authorization': token ? `Bearer ${token}` : ''
@@ -61,23 +60,42 @@ async function request(method, endpoint, body = null) {
     /* Eseguiamo la fetch verso il backend */
     const res = await fetch(BASE_URL + endpoint, options);
 
-    /* Se il server risponde con 401 o 403, l'utente non è autenticato.
-       ATTENZIONE: Non facciamo il redirect se l'errore avviene durante il LOGIN,
-       perché in quel caso l'errore indica semplicemente 'credenziali errate' 
-       e non una sessione scaduta. */
+    /* ----------------------------------------------------------------------------
+       GESTIONE ERRORI DI AUTENTICAZIONE (401 e 403)
+       Se il server risponde con 401 (token mancante) o 403 (token non valido),
+       l'utente non è più autenticato. 
+       ATTENZIONE: Non facciamo il redirect se l'errore avviene durante l'endpoint
+       di login (/auth/login), perché in quel caso l'errore significa 
+       semplicemente "password sbagliata" e non "sessione scaduta".
+       ---------------------------------------------------------------------------- */
     if ((res.status === 401 || res.status === 403) && !endpoint.includes('/auth/login')) {
         localStorage.removeItem('token');
         localStorage.removeItem('nome');
-        window.location.href = 'index.html';
+        window.location.href = 'index. contoh.html'; // Reindirizzamento forzato al login
         return null;
     }
 
-    /* Convertiamo la risposta in oggetto JavaScript e la
-       restituiamo al chiamante. res.json() è asincrono —
-       quindi usiamo await */
+    /* ----------------------------------------------------------------------------
+       VERIFICA INTEGRITÀ DELLA RISPOSTA (res.ok)
+       La proprietà 'res.ok' è true solo se lo status della risposta è tra 200 e 299.
+       Se è false (es. 400 Bad Request, 404 Not Found, 500 Internal Server Error),
+       dobbiamo interrompere il flusso e lanciare un errore. 
+       Senza questo controllo, fetch() considererebbe un 404 come un "successo" 
+       perché il server ha risposto, portando a falsi messaggi di successo nel frontend.
+       ---------------------------------------------------------------------------- */
+    if (!res.ok) {
+        /* Proviamo a leggere il messaggio di errore inviato dal backend (es: {"error": "Utente non trovato"})
+           Usiamo .catch(() => ({})) per evitare crash se il server non manda un JSON valido */
+        const errorData = await res.json().catch(() => ({})); 
+        
+        /* Lanciamo un oggetto Error che conterrà il messaggio specifico del server.
+           Questo errore verrà intercettato dal blocco 'catch' nei file di logica (es. gruppi.js). */
+        throw new Error(errorData.error || 'Si è verificato un errore durante la richiesta');
+    }
+
+    /* Se tutto è ok, convertiamo la risposta in oggetto JavaScript e la restituiamo */
     return res.json();
 }
-
 
 /* ------------------------------------------------------------
    FUNZIONE SPECIALE — requestFile()
@@ -156,6 +174,10 @@ const api = {
     creaMateria: (nome, colore) =>
         request('POST', '/materie', { nome, colore }),
 
+      /* PUT /api/materie/:id — aggiorna nome e colore di una materia */
+    aggiornaMateria: (id, data) => 
+        request('PUT', `/materie/${id}`, data),
+
     /* DELETE /api/materie/:id — elimina una materia */
     eliminaMateria: (id) =>
         request('DELETE', `/materie/${id}`),
@@ -209,6 +231,10 @@ const api = {
     /* GET /api/gruppi — lista gruppi dell'utente */
     getGruppi: () =>
         request('GET', '/gruppi'),
+
+     /* GET /api/gruppi/:id/membri — recupera la lista dei membri di un gruppo */
+    getMembriGruppo: (id) => 
+        request('GET', `/gruppi/${id}/membri`),
 
     /* POST /api/gruppi — crea un nuovo gruppo */
     creaGruppo: (nome, descrizione) =>
