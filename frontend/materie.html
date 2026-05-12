@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- 
+  materie.html
+  Pagina di gestione delle materie — permette all'utente di creare,
+  visualizzare e organizzare le proprie materie di studio, 
+  assegnando a ognuna un colore identificativo.
+-->
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyApp — Materie</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages/materie.css"> <!-- File CSS da creare -->
+</head>
+
+<body>
+
+  <!-- NAVBAR (Identica alle altre pagine) -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="dashboard.html" class="navbar-brand">
+        <span>📚</span>
+        <span>StudyApp</span>
+      </a>
+      <div class="navbar-links">
+        <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
+        <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
+        <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
+        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
+        <a href="materie.html"    class="navbar-link" data-page="materie">Materie</a> <!-- Link attivo -->
+        <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
+      </div>
+      <div class="navbar-user">
+        <div class="navbar-avatar" id="user-avatar"></div>
+        <div class="navbar-dropdown" id="user-dropdown" hidden>
+          <div class="dropdown-name" id="dropdown-name"></div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item dropdown-item-danger" id="btn-logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-content">
+    <div class="container">
+
+      <!-- INTESTAZIONE PAGINA -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Le mie Materie</h1>
+          <p class="page-subtitle">Organizza i tuoi studi assegnando colori alle materie.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nuova-materia">
+          + Nuova materia
+        </button>
+      </div>
+
+      <!-- GRIGLIA MATERIE
+           Viene popolata via JS. Ogni materia è una card 
+           che mostra il nome e il colore scelto. -->
+      <div class="flex-center" id="materie-loading" style="padding: 3rem">
+        <div class="spinner spinner-lg"></div>
+      </div>
+
+      <div class="materie-grid" id="materie-grid" hidden></div>
+
+      <div class="empty-state" id="materie-empty" hidden>
+        <div class="empty-state-icon">📚</div>
+        <div class="empty-state-title">Nessuna materia creata</div>
+        <div class="empty-state-text">
+          Crea la tua prima materia per organizzare quiz, file ed eventi.
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL NUOVA MATERIA -->
+  <div class="modal-overlay" id="modal-materia">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Nuova materia</h3>
+        <button class="modal-close" id="modal-materia-close">✕</button>
+      </div>
+
+      <form id="form-materia" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="materia-nome">Nome materia *</label>
+          <input 
+            class="form-control" 
+            type="text" 
+            id="materia-nome" 
+            placeholder="Es. Storia, Matematica, Informatica..." 
+            required
+          >
+          <span class="form-error" id="materia-nome-error"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="materia-colore">Colore identificativo</label>
+          <div class="color-picker-wrap">
+            <input type="color" id="materia-colore" value="#6366F1" style="width: 100%; height: 40px; cursor: pointer; border: none; border-radius: 4px;">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-materia-annulla">
+            Annulla
+          </button>
+          <button type="submit" class="btn btn-primary" id="btn-materia-salva">
+            <span class="btn-text">Crea materia</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/materie.js"></script>
+
+</body>
+</html>
