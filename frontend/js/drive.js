@@ -321,6 +321,7 @@ btnEliminaConferma.addEventListener('click', async () => {
    ------------------------------------------------------------ */
 async function caricaDati() {
     try {
+        /* Recuperiamo file, materie e gruppi per popolare la pagina e i filtri */
         const [files, materie, gruppi] = await Promise.all([
             api.getFiles(),
             api.getMaterie(),
@@ -331,20 +332,13 @@ async function caricaDati() {
         tutteLeMaterie = materie;
         tuttiIGruppi   = gruppi;
 
-        /* Nascondiamo lo spinner */
-        filesLoading.hidden = true;
-
-        /* Aggiorniamo i filtri materia — manteniamo il bottone "Tutti"
-           e aggiungiamo un bottone per ogni materia dell'utente */
+        /* Generiamo i bottoni dei filtri per materia in base ai dati ricevuti */
         driveFiltri.innerHTML = `<button class="filtro-btn active" data-materia="">Tutti</button>`;
         materie.forEach(m => {
             const btn = document.createElement('button');
             btn.className        = 'filtro-btn';
             btn.dataset.materia  = m.id;
             btn.textContent      = m.nome;
-            /* Coloriamo il bottone attivo con il colore della materia —
-               lo impostiamo via JS perché non possiamo usare variabili
-               CSS dinamiche direttamente nel foglio di stile */
             btn.addEventListener('click', () => {
                 btn.style.background  = m.colore;
                 btn.style.borderColor = m.colore;
@@ -352,7 +346,7 @@ async function caricaDati() {
             driveFiltri.appendChild(btn);
         });
 
-        /* Popoliamo il select materie nel modal upload */
+        /* Popoliamo i selettori nel modal di upload (materia e gruppo di condivisione) */
         uploadMateria.innerHTML = '<option value="">Nessuna materia</option>';
         materie.forEach(m => {
             const opt       = document.createElement('option');
@@ -361,7 +355,6 @@ async function caricaDati() {
             uploadMateria.appendChild(opt);
         });
 
-        /* Popoliamo il select gruppi nel modal upload */
         uploadGruppo.innerHTML = '<option value="">Solo per me</option>';
         gruppi.forEach(g => {
             const opt       = document.createElement('option');
@@ -370,12 +363,20 @@ async function caricaDati() {
             uploadGruppo.appendChild(opt);
         });
 
-        /* Mostriamo i file */
+        /* Infine, generiamo la griglia dei file effettivamente caricati */
         mostraFile();
 
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento dei file', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           SCOMPARSA INDICATORE DI CARICAMENTO:
+           Nascondiamo lo spinner principale del drive. Questo deve 
+           accadere sempre per evitare che l'utente rimanga bloccato 
+           da una rotellina infinita in caso di errore del server.
+           ------------------------------------------------------------ */
+        filesLoading.hidden = true;
     }
 }
 

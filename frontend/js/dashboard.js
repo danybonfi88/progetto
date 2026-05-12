@@ -128,8 +128,9 @@ btnLogout.addEventListener('click', () => {
    ------------------------------------------------------------ */
 async function caricaDashboard() {
     try {
-        /* Promise.all aspetta che TUTTE le promise si risolvano.
-           Se anche solo una fallisce, va nel catch */
+        /* Lanciamo tutte le chiamate API in parallelo tramite Promise.all.
+           Questo riduce il tempo di attesa totale, poiché non aspettiamo 
+           che una query finisca per iniziarne un'altra. */
         const [eventi, files, quiz, gruppi] = await Promise.all([
             api.getEventi(),
             api.getFiles(),
@@ -137,16 +138,27 @@ async function caricaDashboard() {
             api.getGruppi(),
         ]);
 
-        /* Aggiorniamo le statistiche con i conteggi */
+        /* Aggiorniamo le card statistiche in alto con i conteggi aggiornati */
         aggiornaStatistiche(eventi, files, quiz, gruppi);
 
-        /* Popoliamo le liste nella griglia principale */
+        /* Popoliamo le due colonne della griglia principale: eventi e file recenti */
         mostraEventi(eventi);
         mostraFiles(files);
 
     } catch (err) {
+        /* In caso di errore di rete o server, logghiamo l'errore e avvisiamo l'utente */
         console.error(err);
         showToast('Errore nel caricamento dei dati', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           GESTIONE FINALE CARICAMENTO:
+           Il blocco finally viene eseguito SEMPRE, sia in caso di successo
+           che in caso di errore. Spostiamo qui la rimozione degli spinner 
+           perché, se rimanesse nel try, un errore bloccherebbe l'interfaccia
+           lasciando le rotelline di caricamento visibili all'infinito.
+           ------------------------------------------------------------ */
+        document.getElementById('eventi-loading').hidden = true;
+        document.getElementById('files-loading').hidden = true;
     }
 }
 

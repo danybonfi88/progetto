@@ -533,6 +533,7 @@ btnEliminaConferma.addEventListener('click', async () => {
    ------------------------------------------------------------ */
 async function caricaDati() {
     try {
+        /* Recuperiamo in parallelo gli eventi e le materie dell'utente */
         const [eventi, materie] = await Promise.all([
             api.getEventi(),
             api.getMaterie(),
@@ -541,7 +542,7 @@ async function caricaDati() {
         tuttiGliEventi = eventi;
         tutteLeMaterie = materie;
 
-        /* Popoliamo il select delle materie nel modal */
+        /* Popoliamo il menu a tendina delle materie nel modal di creazione evento */
         campoMateria.innerHTML = '<option value="">Nessuna materia</option>';
         materie.forEach(m => {
             const opt = document.createElement('option');
@@ -550,17 +551,22 @@ async function caricaDati() {
             campoMateria.appendChild(opt);
         });
 
-        /* Nascondiamo gli spinner ora che i dati sono arrivati */
-        calendarioLoading.style.display = 'none';
-        listaLoading.hidden             = true;
-
-        /* Ridisegniamo calendario e lista */
+        /* Ridisegniamo l'intera griglia del calendario e la lista cronologica */
         generaCalendario();
         aggiornaLista();
 
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento degli eventi', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           SCOMPARSA INDICATORI DI CARICAMENTO:
+           Nascondiamo lo spinner del calendario e quello della lista eventi.
+           L'uso del finally assicura che l'utente possa comunque interagire 
+           con la pagina anche se il caricamento dei dati è fallito.
+           ------------------------------------------------------------ */
+        calendarioLoading.style.display = 'none';
+        listaLoading.hidden = true;
     }
 }
 

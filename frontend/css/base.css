@@ -243,3 +243,15 @@ p {
    bloccare il rendering della pagina mentre il font si scarica.
    ------------------------------------------------------------ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ============================================================
+   CORREZIONE GLOBALE ELEMENTI NASCOSTI
+   L'attributo 'hidden' di HTML viene ignorato se l'elemento ha 
+   una proprietà 'display' definita nel CSS (come display: flex 
+   della classe .flex-center). Questa regola forza la scomparsa 
+   di qualsiasi elemento con l'attributo hidden, indipendentemente 
+   da altre regole di stile.
+   ============================================================ */
+[hidden] {
+    display: none !important;
+}

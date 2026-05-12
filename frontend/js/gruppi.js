@@ -375,11 +375,19 @@ btnEliminaConferma.addEventListener('click', async () => {
    ------------------------------------------------------------ */
 async function caricaDati() {
     try {
+        /* Recuperiamo l'elenco dei gruppi a cui l'utente appartiene */
         tuttiIGruppi = await api.getGruppi();
         mostraGruppi();
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento dei gruppi', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           SCOMPARSA INDICATORE DI CARICAMENTO:
+           Nascondiamo lo spinner dei gruppi. L'operazione di caricamento 
+           è conclusa, a prescindere che i dati siano arrivati o meno.
+           ------------------------------------------------------------ */
+        gruppiLoading.hidden = true;
     }
 }
 

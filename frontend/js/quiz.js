@@ -198,10 +198,11 @@ function mostraQuiz() {
    VISTA DETTAGLIO — apre un quiz e carica le sue domande
    ------------------------------------------------------------ */
 async function apriDettaglio(id) {
+    /* Troviamo il quiz selezionato nella cache locale */
     quizCorrente = tuttiIQuiz.find(q => q.id === id);
     if (!quizCorrente) return;
 
-    /* Popoliamo l'intestazione */
+    /* Impostiamo i testi dell'intestazione del quiz */
     dettaglioTitolo.textContent = quizCorrente.titolo;
 
     if (quizCorrente.materia_nome) {
@@ -211,20 +212,28 @@ async function apriDettaglio(id) {
         dettaglioMateria.hidden = true;
     }
 
-    /* Resettiamo la lista domande e mostriamo lo spinner */
+    /* Prepariamo la vista: nascondiamo i dati e mostriamo lo spinner */
     domandeList.hidden    = true;
     domandeEmpty.hidden   = true;
     domandeLoading.hidden = false;
 
     mostraVista('dettaglio');
 
-    /* Carichiamo le domande del quiz */
     try {
+        /* Recuperiamo l'elenco completo delle domande associate a questo specifico quiz */
         domandeCorrente = await api.getDomande(id);
         mostraDomande();
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento delle domande', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           SCOMPARSA INDICATORE DI CARICAMENTO:
+           Nascondiamo lo spinner delle domande. Se il caricamento fallisce,
+           l'utente vedrà il messaggio di errore ma non rimarrà bloccato 
+           da una rotellina infinita.
+           ------------------------------------------------------------ */
+        domandeLoading.hidden = true;
     }
 }
 
@@ -746,6 +755,7 @@ formGeneraAi.addEventListener('submit', async (e) => {
    ------------------------------------------------------------ */
 async function caricaDati() {
     try {
+        /* Carichiamo in parallelo la lista quiz e le materie per i menu a tendina */
         const [quiz, materie] = await Promise.all([
             api.getQuiz(),
             api.getMaterie(),
@@ -754,7 +764,7 @@ async function caricaDati() {
         tuttiIQuiz     = quiz;
         tutteLeMaterie = materie;
 
-        /* Popoliamo il select materie nel modal nuovo quiz */
+        /* Popoliamo il selettore della materia nel modal "Nuovo Quiz" */
         quizMateria.innerHTML = '<option value="">Nessuna materia</option>';
         materie.forEach(m => {
             const opt       = document.createElement('option');
@@ -763,12 +773,19 @@ async function caricaDati() {
             quizMateria.appendChild(opt);
         });
 
-        quizLoading.hidden = true;
+        /* Mostriamo la griglia dei quiz caricati */
         mostraQuiz();
 
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento dei quiz', 'danger');
+    } finally {
+        /* ------------------------------------------------------------
+           SCOMPARSA INDICATORE DI CARICAMENTO:
+           Nascondiamo lo spinner della lista quiz. Questo garantisce che 
+           l'utente veda l'interfaccia (o lo stato vuoto) anche se l'API fallisce.
+           ------------------------------------------------------------ */
+        quizLoading.hidden = true;
     }
 }
 
