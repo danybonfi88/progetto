@@ -102,6 +102,7 @@ const rispostaApertaWrap = document.getElementById('risposta-aperta-wrap');
 const rispostaAperta    = document.getElementById('risposta-aperta');
 const btnConfermaRisposta = document.getElementById('btn-conferma-risposta');
 const btnQuizAnnulla    = document.getElementById('btn-quiz-annulla');
+const btnQuizPausa = document.getElementById('btn-quiz-pausa');
 const risultatoCard     = document.getElementById('risultato-card');
 const risultatoIcona    = document.getElementById('risultato-icona');
 const risultatoTitolo   = document.getElementById('risultato-titolo');
@@ -601,6 +602,37 @@ btnEliminaConferma.addEventListener('click', async () => {
    una alla volta. Tiene il punteggio e mostra il risultato
    finale alla fine.
    ------------------------------------------------------------ */
+
+/* 
+   FUNZIONE PAUSA QUIZ
+   Salva l'attuale stato del quiz nel localStorage dell'utente.
+   Salviamo: 
+   - l'indice della domanda corrente (per ripartire da lì)
+   - il numero di risposte corrette (per non azzerare il punteggio)
+   - l'elenco delle domande mescolate (per mantenere lo stesso ordine)
+*/
+function pausaQuiz() {
+    if (!quizCorrente) return;
+
+    const stato = {
+        indiceDomanda: indiceDomanda,
+        risposteCorrette: risposteCorrette,
+        domandeMescolate: domandeQuiz
+    };
+
+    /* Salviamo l'oggetto convertendolo in stringa JSON. 
+       Usiamo una chiave unica per ogni quiz (es: 'quiz_progress_12') */
+    localStorage.setItem(`quiz_progress_${quizCorrente.id}`, JSON.stringify(stato));
+    
+    showToast('Progresso salvato! Potrai riprendere da qui.', 'success');
+    
+    /* Ritorniamo alla vista dettaglio del quiz */
+    mostraVista('dettaglio');
+}
+
+/* Colleghiamo la funzione al bottone Pausa */
+btnQuizPausa.addEventListener('click', pausaQuiz);
+
 btnIniziaQuiz.addEventListener('click', () => {
     if (domandeCorrente.length === 0) {
         showToast('Aggiungi almeno una domanda prima di iniziare', 'danger');
@@ -610,11 +642,36 @@ btnIniziaQuiz.addEventListener('click', () => {
 });
 
 function avviaQuiz() {
-    /* Mescoliamo le domande con l'algoritmo Fisher-Yates —
-       così ogni esecuzione del quiz ha un ordine diverso */
-    domandeQuiz = [...domandeCorrente].sort(() => Math.random() - 0.5);
-    indiceDomanda    = 0;
-    risposteCorrette = 0;
+    /* 1. VERIFICA SALVATAGGI PRECEDENTI
+       Controlliamo se nel localStorage esiste una chiave di progresso per questo quiz */
+    const salvataggio = localStorage.getItem(`quiz_progress_${quizCorrente.id}`);
+
+    if (salvataggio) {
+        /* Chiediamo all'utente se vuole riprendere o ricominciare */
+        const riprendi = confirm('Hai un quiz in pausa. Vuoi riprendere da dove avevi lasciato?');
+        
+        if (riprendi) {
+            const dati = JSON.parse(salvataggio);
+            /* Ripristiniamo lo stato salvato */
+            domandeQuiz     = dati.domandeMescolate;
+            indiceDomanda   = dati.indiceDomanda;
+            risposteCorrette = dati.risposteCorrette;
+            
+            /* Rimuoviamo il salvataggio dal localStorage perché stiamo riprendendo ora */
+            localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
+        } else {
+            /* Se l'utente sceglie di ricominciare, azzeriamo tutto e mescoliamo di nuovo */
+            domandeQuiz = [...domandeCorrente].sort(() => Math.random() - 0.5);
+            indiceDomanda = 0;
+            risposteCorrette = 0;
+            localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
+        }
+    } else {
+        /* Caso standard: nessun salvataggio presente, avvio normale */
+        domandeQuiz = [...domandeCorrente].sort(() => Math.random() - 0.5);
+        indiceDomanda = 0;
+        risposteCorrette = 0;
+    }
 
     mostraVista('quiz');
     mostraDomandaCorrente();
@@ -751,6 +808,9 @@ btnProssimaDomanda.addEventListener('click', () => {
 
 /* Mostra il punteggio finale */
 function mostraFinale() {
+    /* Rimuoviamo ogni eventuale salvataggio residue poiché il quiz è stato completato */
+    localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
+    
     domandaCard.hidden   = true;
     risultatoCard.hidden = true;
     finaleCard.hidden    = false;
