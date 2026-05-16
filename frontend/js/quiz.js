@@ -139,6 +139,12 @@ const modalEliminaClose  = document.getElementById('modal-elimina-close');
 const btnEliminaAnnulla  = document.getElementById('btn-elimina-annulla');
 const btnEliminaConferma = document.getElementById('btn-elimina-conferma');
 
+/* Modal ripresa quiz */
+const modalRiprendi      = document.getElementById('modal-riprendi');
+const modalRiprendiClose = document.getElementById('modal-riprendi-close');
+const btnRiprendiSi      = document.getElementById('btn-riprendi-si');
+const btnRiprendiNo      = document.getElementById('btn-riprendi-no');
+
 /* Toast */
 const toastContainer = document.getElementById('toast-container');
 
@@ -241,7 +247,8 @@ async function avviaQuizDiretto(e, id) {
         domandeCorrente = domande;
 
         /* 3. Lanciamo la funzione di avvio (che mescola le domande e mostra la vista quiz) */
-        avviaQuiz();
+        /* Aggiungiamo await perché avviaQuiz ora è asincrona per via del modal */
+        await avviaQuiz();
 
     } catch (err) {
         console.error(err);
@@ -633,6 +640,41 @@ function pausaQuiz() {
 /* Colleghiamo la funzione al bottone Pausa */
 btnQuizPausa.addEventListener('click', pausaQuiz);
 
+/* 
+   FUNZIONE CHIEDI RIPRESA
+   Crea una Promise che risolve in TRUE se l'utente vuole riprendere, 
+   o FALSE se vuole ricominciare.
+   Questo permette di usare 'await' all'interno di avviaQuiz() 
+   per simulare il comportamento del confirm() del browser ma con un modal dell'app.
+*/
+function chiediRipresa() {
+    return new Promise((resolve) => {
+        /* Mostriamo il modal */
+        modalRiprendi.classList.add('active');
+
+        /* Definiamo le funzioni di risposta */
+        const rispondiSi = () => {
+            modalRiprendi.classList.remove('active');
+            resolve(true); // L'utente vuole riprendere
+        };
+
+        const rispondiNo = () => {
+            modalRiprendi.classList.remove('active');
+            resolve(false); // L'utente vuole ricominciare
+        };
+
+        /* Colleghiamo i bottoni alle risposte */
+        btnRiprendiSi.onclick = rispondiSi;
+        btnRiprendiNo.onclick = rispondiNo;
+        modalRiprendiClose.onclick = rispondiNo; // Chiudendo la X, di default ricomincia
+
+        /* Chiudi se clicchi fuori dal modal */
+        modalRiprendi.onclick = (e) => {
+            if (e.target === modalRiprendi) rispondiNo();
+        };
+    });
+}
+
 btnIniziaQuiz.addEventListener('click', () => {
     if (domandeCorrente.length === 0) {
         showToast('Aggiungi almeno una domanda prima di iniziare', 'danger');
@@ -641,35 +683,39 @@ btnIniziaQuiz.addEventListener('click', () => {
     avviaQuiz();
 });
 
-function avviaQuiz() {
-    /* 1. VERIFICA SALVATAGGI PRECEDENTI
-       Controlliamo se nel localStorage esiste una chiave di progresso per questo quiz */
+/* 
+   AVVIO QUIZ
+   Ora è una funzione ASYNC per poter attendere la risposta del modal di ripresa.
+*/
+async function avviaQuiz() {
+    /* 1. VERIFICA SALVATAGGI PRECEDENTI */
     const salvataggio = localStorage.getItem(`quiz_progress_${quizCorrente.id}`);
 
     if (salvataggio) {
-        /* Chiediamo all'utente se vuole riprendere o ricominciare */
-        const riprendi = confirm('Hai un quiz in pausa. Vuoi riprendere da dove avevi lasciato?');
+        /* 
+           USO DEL MODAL PERSONALIZZATO:
+           Attendiamo (await) che la Promise di chiediRipresa venga risolta.
+           Il codice si ferma qui finché l'utente non clicca su un bottone del modal.
+        */
+        const riprendi = await chiediRipresa();
         
         if (riprendi) {
             const dati = JSON.parse(salvataggio);
-            /* Ripristiniamo lo stato salvato */
-            domandeQuiz     = dati.domandeMescolate;
-            indiceDomanda   = dati.indiceDomanda;
+            domandeQuiz      = dati.domandeMescolate;
+            indiceDomanda    = dati.indiceDomanda;
             risposteCorrette = dati.risposteCorrette;
             
-            /* Rimuoviamo il salvataggio dal localStorage perché stiamo riprendendo ora */
             localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
         } else {
-            /* Se l'utente sceglie di ricominciare, azzeriamo tutto e mescoliamo di nuovo */
-            domandeQuiz = [...domandeCorrente].sort(() => Math.random() - 0.5);
-            indiceDomanda = 0;
+            domandeQuiz      = [...domandeCorrente].sort(() => Math.random() - 0.5);
+            indiceDomanda    = 0;
             risposteCorrette = 0;
             localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
         }
     } else {
-        /* Caso standard: nessun salvataggio presente, avvio normale */
-        domandeQuiz = [...domandeCorrente].sort(() => Math.random() - 0.5);
-        indiceDomanda = 0;
+        /* Avvio normale senza salvataggi */
+        domandeQuiz      = [...domandeCorrente].sort(() => Math.random() - 0.5);
+        indiceDomanda    = 0;
         risposteCorrette = 0;
     }
 
@@ -810,7 +856,7 @@ btnProssimaDomanda.addEventListener('click', () => {
 function mostraFinale() {
     /* Rimuoviamo ogni eventuale salvataggio residue poiché il quiz è stato completato */
     localStorage.removeItem(`quiz_progress_${quizCorrente.id}`);
-    
+
     domandaCard.hidden   = true;
     risultatoCard.hidden = true;
     finaleCard.hidden    = false;

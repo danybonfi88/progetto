@@ -387,6 +387,27 @@
     </div>
   </div>
 
+   <!-- MODAL RIPRESA QUIZ
+       Appare quando l'utente avvia un quiz che era stato messo in pausa.
+       Permette di scegliere tra riprendere l'ultima sessione o ricominciare da zero.
+  -->
+  <div class="modal-overlay" id="modal-riprendi">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Riprendere Quiz?</h3>
+        <button class="modal-close" id="modal-riprendi-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600); text-align: center; margin-bottom: 1.5rem;">
+        È presente un progresso salvato per questo quiz. <br>
+        Vuoi ripartire da dove avevi lasciato o preferisci ricominciare?
+      </p>
+      <div class="modal-footer" style="justify-content: center; gap: 1rem;">
+        <button class="btn btn-outline" id="btn-riprendi-no">Ricomincia</button>
+        <button class="btn btn-primary" id="btn-riprendi-si">Sì, riprendi</button>
+      </div>
+    </div>
+  </div>
+
 
   <div class="toast-container" id="toast-container"></div>
 
