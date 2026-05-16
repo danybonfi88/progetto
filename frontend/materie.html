@@ -121,6 +121,30 @@
     </div>
   </div>
 
+  <!-- MODAL CONFERMA ELIMINAZIONE MATERIA
+       Appare quando l'utente clicca sull'icona del cestino.
+       Evita l'eliminazione accidentale chiedendo una conferma finale.
+  -->
+  <div class="modal-overlay" id="modal-elimina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elimina materia</h3>
+        <button class="modal-close" id="modal-elimina-close">✕</button>
+      </div>
+      <p style="color: var(--gray-600); text-align: center; margin-bottom: 1.5rem;">
+        Sei sicuro di voler eliminare questa materia? <br>
+        Gli eventi e i quiz associati rimarranno, ma non avranno più una materia assegnata.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-elimina-annulla">Annulla</button>
+        <button class="btn btn-danger" id="btn-elimina-conferma">
+          <span class="btn-text">Elimina</span>
+          <span class="spinner" hidden></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toast-container"></div>
 
   <script src="js/api.js"></script>

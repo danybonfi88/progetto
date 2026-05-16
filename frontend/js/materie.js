@@ -51,6 +51,13 @@ const materieEmpty   = document.getElementById('materie-empty');
 
 const modalMateria     = document.getElementById('modal-materia');
 const modalMateriaClose = document.getElementById('modal-materia-close');
+
+/* Modal elimina materia */
+const modalElimina       = document.getElementById('modal-elimina');
+const modalEliminaClose  = document.getElementById('modal-elimina-close');
+const btnEliminaAnnulla  = document.getElementById('btn-elimina-annulla');
+const btnEliminaConferma = document.getElementById('btn-elimina-conferma');
+
 const btnNuovaMateria  = document.getElementById('btn-nuova-materia');
 const btnMateriaAnnulla = document.getElementById('btn-materia-annulla');
 const formMateria       = document.getElementById('form-materia');
@@ -60,7 +67,7 @@ const btnMateriaSalva   = document.getElementById('btn-materia-salva');
 const toastContainer = document.getElementById('toast-container');
 
 let materiaInModifica = null; // Contiene l'ID della materia in modifica, null se stiamo creando
-
+let materiaEliminaId = null;
 
 /* ------------------------------------------------------------
    CARICAMENTO MATERIE
@@ -214,20 +221,61 @@ formMateria.addEventListener('submit', async (e) => {
    ELIMINAZIONE MATERIA
    Rimuove la materia tramite API e aggiorna la griglia.
    ------------------------------------------------------------ */
+/* 
+   Sostituiamo la vecchia funzione: ora non elimina più direttamente,
+   ma chiama l'apertura del modal di conferma.
+*/
 async function eliminaMateria(id) {
-    if (!confirm('Sei sicuro di voler eliminare questa materia? Gli eventi e i quiz associati rimarranno, ma non avranno più una materia assegnata.')) {
-        return;
-    }
+    apriModalElimina(id);
+}
+
+/* 
+   APERTURA MODAL ELIMINAZIONE
+   Invece di eliminare subito, salviamo l'ID della materia 
+   e mostriamo il modal di conferma.
+*/
+function apriModalElimina(id) {
+    materiaEliminaId = id;
+    modalElimina.classList.add('active');
+}
+
+/* Chiude il modal e resetta l'ID di eliminazione */
+function chiudiModalElimina() {
+    modalElimina.classList.remove('active');
+    materiaEliminaId = null;
+}
+
+/* Event listeners per la chiusura del modal elimina */
+modalEliminaClose.addEventListener('click', chiudiModalElimina);
+btnEliminaAnnulla.addEventListener('click', chiudiModalElimina);
+modalElimina.addEventListener('click', (e) => {
+    if (e.target === modalElimina) chiudiModalElimina();
+});
+
+/* 
+   CONFERMA ELIMINAZIONE
+   Questa funzione viene eseguita solo quando l'utente clicca sul bottone "Elimina" 
+   all'interno del modal.
+*/
+btnEliminaConferma.addEventListener('click', async () => {
+    if (!materiaEliminaId) return;
+
+    setLoading('btn-elimina-conferma', true);
 
     try {
-        await api.eliminaMateria(id);
+        /* Chiamiamo l'API per eliminare la materia salvata in materiaEliminaId */
+        await api.eliminaMateria(materiaEliminaId);
         showToast('Materia eliminata', 'success');
-        await caricaDati();
+        
+        chiudiModalElimina();
+        await caricaDati(); // Ricarichiamo la lista per aggiornare la vista
     } catch (err) {
         console.error(err);
         showToast('Errore durante l\'eliminazione', 'danger');
+    } finally {
+        setLoading('btn-elimina-conferma', false);
     }
-}
+});
 
 
 /* ------------------------------------------------------------
