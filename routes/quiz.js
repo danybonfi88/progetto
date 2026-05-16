@@ -75,6 +75,42 @@ router.post('/', async (req, res) => {
     }
 });
 
+// PUT /api/quiz/:id — Permette di modificare il titolo e la materia di un quiz esistente
+router.put('/:id', async (req, res) => {
+    // Estraggo i dati dal body della richiesta
+    const { titolo, materia_id } = req.body;
+
+    // Validazione: il titolo è obbligatorio per evitare quiz senza nome
+    if (!titolo) {
+        return res.status(400).json({ error: 'Il titolo del quiz è obbligatorio' });
+    }
+
+    try {
+        /* 
+           Eseguiamo l'UPDATE della tabella quiz.
+           Filtriamo per ID e per utente_id per garantire la sicurezza: 
+           solo il proprietario può modificare il proprio quiz.
+        */
+        const [result] = await db.query(
+            'UPDATE quiz SET titolo = ?, materia_id = ? WHERE id = ? AND utente_id = ?',
+            [titolo, materia_id || null, req.params.id, req.user.id]
+        );
+
+        // Se affectedRows è 0, significa che il quiz non esiste o non appartiene all'utente
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quiz non trovato o non autorizzato' });
+        }
+
+        // Risposta di successo
+        res.json({ message: 'Quiz aggiornato con successo' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
+
 
 // DELETE /api/quiz/:id
 router.delete('/:id', async (req, res) => {
@@ -297,6 +333,42 @@ router.post('/:id/generate', async (req, res) => {
     } catch (err) {
         console.error("Errore generazione quiz:", err);
         res.status(500).json({ error: 'Errore interno durante la generazione automatica delle domande' });
+    }
+});
+
+// PUT /api/quiz/:id — modifica un quiz esistente
+router.put('/:id', async (req, res) => {
+    // estraggo dal body i nuovi valori per il titolo e la materia
+    const { titolo, materia_id } = req.body;
+
+    // verifico che il titolo sia presente: non posso avere un quiz senza nome -> 400
+    if (!titolo) {
+        return res.status(400).json({ error: 'Il titolo è obbligatorio' });
+    }
+
+    try {
+        /* 
+           Aggiorno i dati nel DB. 
+           IMPORTANTE: aggiungo la condizione "AND utente_id = ?" per sicurezza.
+           In questo modo impedisco che un utente malintenzionato modifichi 
+           il quiz di un altro semplicemente indovinando l'ID nell'URL.
+        */
+        const [result] = await db.query(
+            'UPDATE quiz SET titolo = ?, materia_id = ? WHERE id = ? AND utente_id = ?',
+            [titolo, materia_id || null, req.params.id, req.user.id]
+        );
+
+        // se affectedRows è 0, significa che il quiz con quell'ID non esiste 
+        // oppure non appartiene all'utente che ha fatto la richiesta -> 404
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Quiz non trovato o non autorizzato' });
+        }
+
+        // l'aggiornamento ha avuto successo -> 200 + messaggio
+        res.json({ message: 'Quiz aggiornato con successo' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore interno del server' });
     }
 });
 

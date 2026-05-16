@@ -71,7 +71,7 @@ async function request(method, endpoint, body = null) {
     if ((res.status === 401 || res.status === 403) && !endpoint.includes('/auth/login')) {
         localStorage.removeItem('token');
         localStorage.removeItem('nome');
-        window.location.href = 'index. contoh.html'; // Reindirizzamento forzato al login
+        window.location.href = 'index.html'; // Reindirizzamento forzato al login
         return null;
     }
 
@@ -265,6 +265,10 @@ const api = {
     creaQuiz: (titolo, materia_id) =>
         request('POST', '/quiz', { titolo, materia_id }),
 
+     /* PUT /api/quiz/:id — aggiorna il titolo e la materia di un quiz esistente */
+    aggiornaQuiz: (id, data) => 
+        request('PUT', `/quiz/${id}`, data),
+
     /* DELETE /api/quiz/:id — elimina un quiz e tutte le sue domande */
     eliminaQuiz: (id) =>
         request('DELETE', `/quiz/${id}`),
@@ -278,8 +282,12 @@ const api = {
         request('POST', `/quiz/${id}/domande`, data),
 
     /* POST /api/quiz/:id/generate — genera automaticamente domande per un quiz tramite AI */
-generateQuizQuestions: (id, argomento, numero) => 
-    request('POST', `/quiz/${id}/generate`, { argomento, numero }),
+    generateQuizQuestions: (id, argomento, numero) => 
+        request('POST', `/quiz/${id}/generate`, { argomento, numero }),
+
+    /* PUT /api/quiz/:id — aggiorna titolo e materia di un quiz */
+    updateQuiz: (id, data) => 
+        request('PUT', `/quiz/${id}`, data),
     
     /* DELETE /api/quiz/:id/domande/:domandaId — elimina una domanda */
     eliminaDomanda: (quizId, domandaId) =>

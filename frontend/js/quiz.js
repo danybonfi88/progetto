@@ -54,6 +54,7 @@ let tutteLeMaterie  = [];
 let quizCorrente    = null;  /* oggetto quiz aperto nel dettaglio */
 let domandeCorrente = [];    /* domande del quiz corrente */
 let quizEliminaId   = null;
+let quizInModifica   = null;
 
 /* Variabili di esecuzione quiz */
 let domandeQuiz     = [];    /* domande mescolate per l'esecuzione */
@@ -76,6 +77,7 @@ const quizLoading   = document.getElementById('quiz-loading');
 const quizGrid      = document.getElementById('quiz-grid');
 const quizEmpty     = document.getElementById('quiz-empty');
 const btnNuovoQuiz  = document.getElementById('btn-nuovo-quiz');
+const btnModificaQuiz = document.getElementById('btn-modifica-quiz');
 
 /* Vista dettaglio */
 const btnTornaLista    = document.getElementById('btn-torna-lista');
@@ -292,8 +294,34 @@ btnTornaLista.addEventListener('click', () => {
 /* ------------------------------------------------------------
    MODAL NUOVO QUIZ — apertura e chiusura
    ------------------------------------------------------------ */
-function apriModalQuiz() {
-    formQuiz.reset();
+/* 
+   APERTURA MODAL QUIZ
+   Gestisce due modalità:
+   - Senza argomenti: Modalità CREAZIONE (campi vuoti).
+   - Con oggetto quiz: Modalità MODIFICA (campi pre-compilati).
+*/
+function apriModalQuiz(quiz = null) {
+    /* Se quiz è presente, siamo in modalità modifica, altrimenti creazione */
+    quizInModifica = quiz ? quiz.id : null;
+    
+    /* Gestione Testi: aggiorniamo titolo modal e testo bottone in base al contesto */
+    const modalTitle = document.querySelector('#modal-quiz .modal-title');
+    const btnText = document.getElementById('btn-quiz-salva').querySelector('.btn-text');
+
+    if (quiz) {
+        modalTitle.textContent = 'Modifica quiz';
+        btnText.textContent = 'Aggiorna quiz';
+        
+        /* Pre-compilazione campi con i dati del quiz selezionato */
+        quizTitolo.value = quiz.titolo;
+        quizMateria.value = quiz.materia_id || '';
+    } else {
+        modalTitle.textContent = 'Nuovo quiz';
+        btnText.textContent = 'Crea quiz';
+        formQuiz.reset();
+    }
+
+    /* Pulizia errori precedenti e apertura modal */
     document.getElementById('quiz-titolo-error').textContent = '';
     modalQuiz.classList.add('active');
 }
@@ -302,7 +330,12 @@ function chiudiModalQuiz() {
     modalQuiz.classList.remove('active');
 }
 
-btnNuovoQuiz.addEventListener('click',      apriModalQuiz);
+/* Quando clicco su "Modifica quiz", passiamo l'oggetto quizCorrente alla funzione per pre-compilare i campi */
+btnModificaQuiz.addEventListener('click', () => {
+    if (quizCorrente) {
+        apriModalQuiz(quizCorrente);
+    }
+});
 modalQuizClose.addEventListener('click',    chiudiModalQuiz);
 btnQuizAnnullaModal.addEventListener('click', chiudiModalQuiz);
 modalQuiz.addEventListener('click', (e) => {
@@ -325,17 +358,35 @@ formQuiz.addEventListener('submit', async (e) => {
     setLoading('btn-quiz-salva', true);
 
     try {
-        const nuovoQuiz = await api.creaQuiz(titolo, quizMateria.value || null);
-        showToast('Quiz creato', 'success');
+        if (quizInModifica) {
+            /* MODALITÀ MODIFICA: aggiorniamo il quiz esistente tramite ID */
+            const dati = { 
+                titolo: titolo, 
+                materia_id: quizMateria.value || null 
+            };
+            await api.aggiornaQuiz(quizInModifica, dati);
+            showToast('Quiz aggiornato con successo', 'success');
+        } else {
+            /* MODALITÀ CREAZIONE: creiamo un nuovo quiz */
+            const nuovoQuiz = await api.creaQuiz(titolo, quizMateria.value || null);
+            showToast('Quiz creato', 'success');
+            
+            /* Se l'utente ha creato il quiz dalla lista, lo portiamo subito nel dettaglio */
+            if (vistaLista.hidden === false) {
+                await caricaDati();
+                apriDettaglio(nuovoQuiz.id);
+            }
+        }
+        
         chiudiModalQuiz();
-        await caricaDati();
-        /* Apriamo subito il dettaglio del quiz appena creato */
-        apriDettaglio(nuovoQuiz.id);
+        await caricaDati(); // Ricarichiamo l'elenco quiz per aggiornare i nomi e le materie a video
+
     } catch (err) {
         console.error(err);
-        showToast('Errore nella creazione del quiz', 'danger');
+        showToast(err.message || 'Errore durante l\'operazione', 'danger');
     } finally {
         setLoading('btn-quiz-salva', false);
+        quizInModifica = null; // Resettiamo lo stato per non confondere future aperture del modal
     }
 });
 
