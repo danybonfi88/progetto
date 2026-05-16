@@ -47,9 +47,12 @@
   border:        1px solid var(--gray-200);
   border-radius: var(--radius-lg);
   padding:       1.25rem;
+  /* CAMBIA: passiamo da column a row per mettere il bottone a fianco del testo */
   display:       flex;
-  flex-direction: column;
-  gap:           0.75rem;
+  flex-direction: row; 
+  align-items:    center;
+  justify-content: space-between;
+  gap:           1rem;
   cursor:        pointer;
   transition:    all var(--transition);
 }
@@ -58,6 +61,18 @@
   box-shadow:   var(--shadow-md);
   transform:    translateY(-2px);
   border-color: var(--primary-light);
+}
+
+/* 
+   Nuova classe per il contenuto della card.
+   Svolge la funzione di contenitore verticale per titolo e footer,
+   occupando tutto lo spazio disponibile a sinistra del bottone.
+*/
+.quiz-card-main {
+  display:       flex;
+  flex-direction: column;
+  gap:           0.75rem;
+  flex:          1; /* Occupa tutto lo spazio possibile */
 }
 
 .quiz-card-titolo {
@@ -386,6 +401,16 @@
   align-items:     center;
   justify-content: center;
   gap:             1rem;
+}
+
+/* 
+   Stile per il bottone di avvio rapido.
+   white-space: nowrap impedisce che il testo del bottone vada a capo.
+*/
+.btn-avvia-rapido {
+  white-space: nowrap;
+  padding:       0.5rem 1rem;
+  flex-shrink:    0; /* Impedisce al bottone di schiacciarsi se il titolo è lungo */
 }
 
 

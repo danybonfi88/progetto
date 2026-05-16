@@ -168,6 +168,10 @@ function mostraVista(vista) {
 /* ------------------------------------------------------------
    VISTA LISTA — mostra i quiz
    ------------------------------------------------------------ */
+/* 
+   VISTA LISTA — mostra i quiz
+   Aggiornata per permettere l'avvio rapido del quiz senza passare per il dettaglio.
+*/
 function mostraQuiz() {
     quizLoading.hidden = true;
 
@@ -181,18 +185,74 @@ function mostraQuiz() {
     quizEmpty.hidden = true;
 
     quizGrid.innerHTML = tuttiIQuiz.map(quiz => `
-        <div class="quiz-card" onclick="apriDettaglio(${quiz.id})">
-            <div class="quiz-card-titolo">${quiz.titolo}</div>
-            <div class="quiz-card-footer">
-                <span class="quiz-card-domande">
-                    🧠 ${quiz.numero_domande} ${quiz.numero_domande === 1 ? 'domanda' : 'domande'}
-                </span>
-                ${quiz.materia_nome
-                    ? `<span class="badge badge-primary">${quiz.materia_nome}</span>`
-                    : ''}
+        <div class="quiz-card">
+            <!-- Contenitore principale della card: al click apre il dettaglio -->
+            <div class="quiz-card-main" onclick="apriDettaglio(${quiz.id})">
+                <div class="quiz-card-titolo">${quiz.titolo}</div>
+                <div class="quiz-card-footer">
+                    <span class="quiz-card-domande">
+                        🧠 ${quiz.numero_domande} ${quiz.numero_domande === 1 ? 'domanda' : 'domande'}
+                    </span>
+                    ${quiz.materia_nome
+                        ? `<span class="badge badge-primary">${quiz.materia_nome}</span>`
+                        : ''}
+                </div>
             </div>
+            <!-- NUOVO: Bottone di avvio rapido. 
+                 L'evento onclick è separato per evitare che si apra anche il dettaglio -->
+            <button class="btn btn-primary btn-avvia-rapido" onclick="avviaQuizDiretto(event, ${quiz.id})">
+                ▶ Avvia
+            </button>
         </div>
     `).join('');
+}
+
+/* 
+   AVVIO RAPIDO DEL QUIZ
+   Permette di iniziare un quiz direttamente dalla lista.
+   1. Previene la propagazione del click (per non aprire il dettaglio).
+   2. Carica le domande dal server.
+   3. Avvia la modalità esecuzione.
+*/
+async function avviaQuizDiretto(e, id) {
+    /* Impedisce che il click sul bottone attivi anche l'onclick della card (apriDettaglio) */
+    e.stopPropagation();
+
+    try {
+        /* Mostriamo un feedback visivo sul bottone */
+        const btn = e.target;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        /* 1. Recuperiamo le domande per questo quiz specifico tramite l'API */
+        const domande = await api.getDomande(id);
+
+        if (domande.length === 0) {
+            showToast('Il quiz è vuoto. Aggiungi domande prima di iniziare.', 'warning');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        /* 2. Impostiamo lo stato globale dell'app per l'esecuzione */
+        quizCorrente = tuttiIQuiz.find(q => q.id === id);
+        domandeCorrente = domande;
+
+        /* 3. Lanciamo la funzione di avvio (che mescola le domande e mostra la vista quiz) */
+        avviaQuiz();
+
+    } catch (err) {
+        console.error(err);
+        showToast('Errore nel caricamento del quiz', 'danger');
+    } finally {
+        /* Ripristiniamo il bottone se c'è stato un errore */
+        const btn = e.target;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '▶ Avvia';
+        }
+    }
 }
 
 
