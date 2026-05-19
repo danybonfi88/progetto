@@ -61,7 +61,7 @@ async function request(method, endpoint, body = null) {
     const res = await fetch(BASE_URL + endpoint, options);
 
     /* ----------------------------------------------------------------------------
-       GESTIONE ERRORI DI AUTENTICAZIONE (401 e 403)
+       GESTIONE ERRORI di AUTENTICAZIONE (401 e 403)
        Se il server risponde con 401 (token mancante) o 403 (token non valido),
        l'utente non è più autenticato. 
        ATTENZIONE: Non facciamo il redirect se l'errore avviene durante l'endpoint
@@ -126,6 +126,12 @@ async function requestFile(endpoint, formData) {
         localStorage.removeItem('nome');
         window.location.href = 'index.html';
         return null;
+    }
+
+    /* AGGIUNTA: Controllo res.ok per evitare crash se l'upload fallisce (es. cartella uploads mancante) */
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Errore durante il caricamento del file');
     }
 
     return res.json();
@@ -223,6 +229,10 @@ const api = {
     eliminaFile: (id) =>
         request('DELETE', `/files/${id}`),
 
+    /* AGGIUNTA: PUT /api/files/:id — aggiorna il nome di un file */
+    aggiornaFile: (id, data) => 
+        request('PUT', `/files/${id}`, data),
+
 
     /* ----------------------------------------------------------
        GRUPPI
@@ -265,7 +275,7 @@ const api = {
     creaQuiz: (titolo, materia_id) =>
         request('POST', '/quiz', { titolo, materia_id }),
 
-     /* PUT /api/quiz/:id — aggiorna il titolo e la materia di un quiz esistente */
+    /* AGGIUNTA: PUT /api/quiz/:id — aggiorna il titolo e la materia di un quiz esistente */
     aggiornaQuiz: (id, data) => 
         request('PUT', `/quiz/${id}`, data),
 

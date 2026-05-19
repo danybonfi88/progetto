@@ -1,161 +1,166 @@
+/* ============================================================
+   routes/files.js
+   Gestisce l'archiviazione, l'upload, l'apertura e la 
+   rimozione dei file. Integra Multer per la gestione 
+ la gestione fisica dei file su disco e MySQL per i metadati.
+   ============================================================ */
+
 // IMPORTO LE LIBRERIE
 /* express */
 const express = require('express');
 /* multer: utile a gestire l'upload dei file */
 const multer = require('multer');
-/* path: modulo built-in di Node.js (non va installato con npm). Serve per lavorare con i percorsi dei file in modo sicuro e compatibile tra sistemi operativi diversi. */
+/* path: modulo built-in di Node.js. Serve per lavorare con i percorsi dei file */
 const path = require('path');
-/* fs: modulo built-in di Node.js (non va installato con npm). Permette di interagire con i file su disco — leggerli, scriverli, eliminarli. */
+/* fs: modulo built-in di Node.js. Permette di interagire con i file su disco */
 const fs = require('fs');
-/* db: importa il file db.js, salvato in un'altra cartella del progetto*/
+/* db: importa il file db.js per la connessione al database */
 const db = require('../config/db');
-/* auth: importa il file auth.js, salvato in un'altra cartella del progetto*/
+/* auth: importa il middleware di autenticazione per proteggere le rotte */
 const auth = require('../middleware/auth');
-/* jsonwebtoken: utile per creazione e verifica dei jwt*/
+/* jsonwebtoken: utile per la verifica manuale dei token nei download */
 const jwt = require('jsonwebtoken');
-/* router: creo il Router specifico di questa rotta, su cui registro gli endpoint specifici*/
+/* router: creo il Router specifico di questa rotta */
 const router = express.Router();
 
 
 // CONFIGURAZIONE MULTER
-/* Qui configuri dove e come multer salva i file. diskStorage significa che i file vengono salvati su disco — 
-esiste anche memoryStorage che li tiene in RAM, ma per file grandi non è pratico. La configurazione ha due funzioni:*/
+/* 
+   Configuro Multer per decidere dove e come salvare i file fisicamente.
+   Uso diskStorage per salvare i file in una cartella dedicata.
+*/
 const storage = multer.diskStorage({
-    // Dice a multer in quale cartella salvare i file. cb sta per callback — è il vecchio modo di gestire operazioni asincrone. 
-    // Il primo argomento è l'errore (null = nessun errore), il secondo è il valore (la cartella in cui multer dovrà salvare) */
+    /* Definizione della cartella di destinazione: i file vanno in 'uploads/' */
     destination: (req, file, cb) => {
-        // cb() funziona come return (ritorna un valore), ma usato per contesti asincroni
         cb(null, 'uploads/');
     },
-    /* Decide il nome con cui il file viene salvato su disco. Non puoi usare il nome originale del file perché:
-    - due utenti potrebbero caricare un file con lo stesso nome e si sovrascriverebbero
-    - nomi con spazi o caratteri speciali creano problemi */
-    /* Genero quindi un nome unico: 
-    Date.now() restituisce il timestamp attuale in millisecondi + Math.round(Math.random() * 1e9) genera un numero casuale tra 0 e 1 miliardo.*/
+    /* 
+       Generazione del nome file fisico: 
+       Per evitare che due file con lo stesso nome si sovrascrivano, 
+       generiamo un nome unico usando il timestamp attuale e un numero casuale.
+    */
     filename: (req, file, cb) => {
         const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        // path.extname(file.originalname): estrae l'estensione da un nome di file -> aggiungo al nome unico che ho appena creato, la sua estensione originale
-        // Il primo argomento è l'errore (null = nessun errore), il secondo è il valore (il nome con cui multer dovrà salvare). */
         cb(null, unique + path.extname(file.originalname));
     }
 });
 
-// Crea l'istanza di multer con la configurazione appena definita. 
+/* Istanza di multer con limite di 10MB per file */
 const upload = multer({
-    // storage è la variabile con le configurazioni di multer creata qui sopr
     storage,
-    // Il campo limits imposta un limite massimo alla dimensione del file.
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 /* ----------------------------------------------------------------------------
-   SISTEMA DI DOWNLOAD PROTETTO
-   Questa rotta è posizionata PRIMA di router.use(auth) perché i download 
-   tramite link (window.open) non possono inviare Header Authorization.
+   SISTEMA DI ACCESSO AI FILE (ANTEPRIMA E DOWNLOAD)
+   Queste rotte sono posizionate PRIMA di router.use(auth) perché l'apertura 
+   e il download tramite link (window.open) non possono inviare Header Authorization.
    Pertanto, verifichiamo il token manualmente tramite la Query String (?token=...).
    ---------------------------------------------------------------------------- */
-router.get('/:id/download', async (req, res) => {
+
+/* 
+   SOTTO-FUNZIONE DI SUPPORTO: verificaToken
+   Questa funzione interna serve a evitare di ripetere la stessa logica di 
+   estrazione e verifica del token in ogni rotta di download/view.
+   Ritorna l'ID dell'utente se il token è valido, altrimenti lancia un errore.
+*/
+async function verificaToken(req) {
+    const token = req.query.token;
+    if (!token) throw new Error('TOKEN_MANCANTE');
+    /* Decodifichiamo il token usando la chiave segreta definita nel file .env */
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded.id;
+}
+
+/* 
+   ROTTA 1: APERTURA IN ANTEPRIMA (/:id/view)
+   Questa rotta serve per aprire il file in una nuova scheda del browser.
+*/
+router.get('/:id/view', async (req, res) => {
     try {
-        // 1. ESTRAZIONE DATI
-        // l'id del file è preso dal parametro dinamico dell'URL (:id)
+        /* Utilizziamo la funzione di supporto per recuperare l'ID utente dal token */
+        const userId = await verificaToken(req);
         const fileId = req.params.id;
-        // il token JWT viene estratto dalla query string (?token=...)
-        const token = req.query.token;
 
-        // Se il token non è presente nell'URL, l'accesso è negato -> 401
-        if (!token) {
-            return res.status(401).json({ error: 'Token mancante' });
-        }
-
-        /* ----------------------------------------------------------------------------
-           VERIFICA AUTENTICAZIONE MANUALE
-           Poiché abbiamo saltato il middleware auth.js, dobbiamo verificare il token 
-           manualmente. jwt.verify() decodifica il token e ne controlla la firma 
-           usando la SECRET salvata nel file .env. Se il token è scaduto o alterato, 
- la funzione lancia un errore che verrà catturato dal blocco catch.
-           ---------------------------------------------------------------------------- */
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Estraiamo l'id utente dal payload del token decodificato
-        const userId = decoded.id;
-
-        /* ----------------------------------------------------------------------------
-           CONTROLLO ACCESSORIE E PERMESSI
-           Non basta che il token sia valido; dobbiamo assicurarci che l'utente abbia 
-           il diritto di vedere questo specifico file.
-           La query verifica due condizioni:
-           - l'utente è il proprietario del file (utente_id = ?)
-           - OPPURE il file appartiene a un gruppo di cui l'utente fa parte 
-             (sottoquery su utenti_gruppi)
-           ---------------------------------------------------------------------------- */
+        /* 
+           RECUPERO DATI: 
+           Estraiamo il percorso fisico, il tipo MIME (per sapere se è un PDF, immagine, ecc.) 
+           e il nome originale (per l'header del browser).
+        */
         const [rows] = await db.query(
-            `SELECT path_server, tipo_mime FROM files 
+            `SELECT path_server, tipo_mime, nome_originale FROM files 
              WHERE id = ? AND (utente_id = ? OR gruppo_id IN (SELECT gruppo_id FROM utenti_gruppi WHERE utente_id = ?))`,
             [fileId, userId, userId]
         );
 
-        // Se la query non restituisce righe, il file non esiste o l'utente non ha i permessi -> 404
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'File non trovato o accesso negato' });
-        }
+        if (rows.length === 0) return res.status(404).json({ error: 'File non trovato o accesso negato' });
 
         const file = rows[0];
         
-        /* ----------------------------------------------------------------------------
-           CONFIGURAZIONE RISPOSTA BROWSER (INLINE vs ATTACHMENT)
-           Per evitare che il browser scarichi automaticamente il file, dobbiamo 
-           istruirlo correttamente tramite gli Header HTTP.
-           ---------------------------------------------------------------------------- */
-        
-        // Impostiamo il Content-Type (es. 'image/png' o 'application/pdf').
-        // Questo dice al browser: "Quello che sto per mandarti è un'immagine/PDF".
+        /* 
+           CONFIGURAZIONE HEADER PER L'ANTEPRIMA (INLINE):
+           1. Content-Type: Fondamentale affinché il browser sappia come renderizzare il file.
+           2. Content-Disposition: Impostato a 'inline'. Questo suggerisce al browser 
+              di mostrare il file invece di scaricarlo. Il parametro 'filename' 
+              serve a dare un nome al file qualora l'utente decida di salvarlo manualmente.
+        */
         res.setHeader('Content-Type', file.tipo_mime);
+        res.setHeader('Content-Disposition', `inline; filename="${file.nome_originale}"`);
         
-        // Impostiamo Content-Disposition su 'inline'. 
-        // 'attachment' forzerebbe il download; 'inline' suggerisce al browser 
-        // di aprire il file direttamente in una scheda se supporta il formato.
-        res.setHeader('Content-Disposition', 'inline');
-
-        /* ----------------------------------------------------------------------------
-           INVIO DEL FILE FISICO
-           Usiamo res.sendFile() invece di res.download().
-           path.resolve() trasforma il percorso relativo (es. 'uploads/foto.jpg') 
-           in un percorso assoluto (es. 'C:/progetti/app/uploads/foto.jpg'), 
-           che è l'unico formato accettato da sendFile.
-           ---------------------------------------------------------------------------- */
-        res.sendFile(path.resolve(file.path_server), (err) => {
-            if (err) {
-                console.error("Errore fisico nel recupero del file:", err);
-                /* Se il file è stato eliminato dal disco ma è ancora nel DB,
-                   mandiamo un errore 404 solo se non abbiamo già inviato l'header */
-                if (!res.headersSent) {
-                    res.status(404).json({ error: 'Il file non è più disponibile sul server' });
-                }
-            }
-        });
+        /* Inviamo il file fisico trasformando il percorso relativo in assoluto */
+        res.sendFile(path.resolve(file.path_server));
 
     } catch (err) {
-        /* In caso di token scaduto o firma non valida, jwt.verify lancia un errore */
-        console.error("Errore durante la verifica del token di download:", err);
-        res.status(403).json({ error: 'Token non valido o scaduto' });
+        /* Gestione specifica per l'errore lanciato da verificaToken */
+        if (err.message === 'TOKEN_MANCANTE') return res.status(401).json({ error: 'Token mancante' });
+        res.status(403).json({ error: 'Token non valido o sessione scaduta' });
+    }
+});
+
+/* 
+   ROTTA 2: DOWNLOAD FORZATO (/:id/download)
+   Questa rotta obbliga il browser a scaricare il file direttamente sul disco.
+*/
+router.get('/:id/download', async (req, res) => {
+    try {
+        const userId = await verificaToken(req);
+        const fileId = req.params.id;
+
+        /* Recuperiamo solo i dati necessari per il download fisico */
+        const [rows] = await db.query(
+            `SELECT path_server, nome_originale FROM files 
+             WHERE id = ? AND (utente_id = ? OR gruppo_id IN (SELECT gruppo_id FROM utenti_gruppi WHERE utente_id = ?))`,
+            [fileId, userId, userId]
+        );
+
+        if (rows.length === 0) return res.status(404).json({ error: 'File non trovato o accesso negato' });
+
+        const file = rows[0];
+        
+        /* 
+           SISTEMA DI DOWNLOAD (ATTACHMENT):
+           res.download è una funzione di Express che automatizza l'impostazione dell'header 
+           'Content-Disposition: attachment'. Questo forza l'apertura della finestra 
+           "Salva con nome" del browser.
+           Il secondo parametro definisce il nome che il file avrà una volta scaricato.
+        */
+        res.download(path.resolve(file.path_server), file.nome_originale);
+
+    } catch (err) {
+        if (err.message === 'TOKEN_MANCANTE') return res.status(401).json({ error: 'Token mancante' });
+        res.status(403).json({ error: 'Token non valido o sessione scaduta' });
     }
 });
 
 
-// Tutte le route qui sotto richiedono il login
+// Tutte le route qui sotto richiedono il login (Middleware Auth)
 router.use(auth);
 
 
-// GET /api/files
+/* GET /api/files — Recupera l'elenco dei file accessibili all'utente */
 router.get('/', async (req, res) => {
     try {
-        // come solito, uso il metodo query con la scrittura [rows], per estrarre solo le righe, senza metadata
-        /* COSA ESTRAGGO: estraggo tutti gli attributi di files, nome e colore materia */
-        /* DA DOVE ESTRAGGO: dalla tabella files, collegata alla tabella materie in base all'id materia.
-        LEFT JOIN -> se le righe di files non hanno corrispondenza in materie, gli attributi di materie sono impostati a null*/
-        /* CONDIZIONE: se vale una delle due condizioni 
-        - f.utente_id = ? — il file è stato creato dall'utente loggato
-        - f.gruppo_id IN (...) — il file appartiene a un gruppo di cui l'utente fa parte */
-        /* ORDINE: ordino per data di upload dei file, crescente */
+        /* Recupero dei file dell'utente o dei suoi gruppi con JOIN per i dati della materia */
         const [rows] = await db.query(`
         SELECT f.*,
                 m.nome AS materia_nome,
@@ -169,45 +174,33 @@ router.get('/', async (req, res) => {
                 WHERE utente_id = ?
             )
         ORDER BY f.data_upload DESC
-        `, [req.user.id, req.user.id]); // req.user viene dal middleware di autenticazione!
+        `, [req.user.id, req.user.id]); 
         
-        // restituisco il risulato della query (res.json() usa 200 di default)
         res.json(rows);
-    
-    // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Errore interno' });
+        res.status(500).json({ error: 'Errore interno durante il recupero dei file' });
     }
 });
 
 
-// POST /api/files
-// Questa è la prima differenza importante rispetto a tutte le route precedenti. Hai due middleware invece di uno:
-// Express accetta una lista di middleware prima dell'handler finale. Li esegue in ordine, uno dopo l'altro
+/* POST /api/files — Gestisce l'upload di un nuovo file tramite Multer */
 router.post('/', upload.single('file'), async (req, res) => {
-    // Dice a multer di aspettarsi un solo file nel campo chiamato 'file'. 
-    // Il nome deve corrispondere esattamente al nome del campo nel form HTML o nella chiamata fetch del frontend. Se il frontend usa un nome diverso, req.file sarà undefined. -> 400
     if (!req.file) {
-        return res.status(400).json({ error: 'Nessun file caricato' });
+        return res.status(400).json({ error: 'Nessun file caricato correttamente' });
     }
 
-    // recupero id materia e id gruppo dal body
     const { materia_id, gruppo_id } = req.body;
 
-    // Dopo che multer ha processato la richiesta, req.file contiene tutte le informazioni sul file appena salvato:
-    /* - req.file.originalname — nome originale del file
-       - req.file.path — percorso su disco
-       - req.file.mimetype — tipo del file
-       - req.file.size — dimensione in byte */
     try {
-        // inserisco un nuovo elemento di files nel database
+        /* Inserimento dei metadati del file nel DB. 
+           Sia il nome originale che il percorso fisico generato da Multer vengono salvati. */
         const [result] = await db.query(
         `INSERT INTO files
             (utente_id, materia_id, gruppo_id, nome_originale, path_server, tipo_mime, dimensione_bytes)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-            req.user.id, // req.user viene dal middleware di autenticazione!
+            req.user.id,
             materia_id || null,
             gruppo_id  || null,
             req.file.originalname,
@@ -217,64 +210,75 @@ router.post('/', upload.single('file'), async (req, res) => {
         ]
         );
 
-        // l'inserimento ha avuto successo -> 201 + informazioni della nuova materia (insertId è l'id che MySQL ha assegnato al nuovo evento tramite AUTO_INCREMENT.)
-        // non invio tutti i campi dell'evento creato, solo i principali, che potrebbero essere utili al client (principalmente l'id del file)
         res.status(201).json({
-        id:             result.insertId,
-        nome_originale: req.file.originalname,
-        tipo_mime:      req.file.mimetype,
-        dimensione:     req.file.size,
+            id:             result.insertId,
+            nome_originale: req.file.originalname,
+            tipo_mime:      req.file.mimetype,
+            dimensione:     req.file.size,
         });
-    
-        // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Errore interno' });
+        res.status(500).json({ error: 'Errore interno durante l\'upload' });
     }
 });
 
 
-// DELETE /api/files/:id
-// Nelle route precedenti la DELETE era semplice — una query e via. Qui invece hai tre step in sequenza, perché eliminare un file significa eliminare due cose:
-// 1. trova il file nel DB e recupera il path sul disco
-// 2. elimina il file fisicamente dal disco
-// 3. elimina il record dal database
-// perchè prima dal disco e poi dal DB? 
-/* Se facessi prima la DELETE sul DB e poi unlinkSync fallisse, il record sarebbe sparito ma il file sarebbe ancora sul disco — un file orfano che non puoi più eliminare perché hai perso il riferimento nel DB.
-Facendo il contrario — prima disco poi DB — se unlinkSync fallisce puoi gestire l'errore nel catch e il record nel DB è ancora lì intatto. Puoi riprovare. */
+/* DELETE /api/files/:id — Elimina il file dal disco e dal database */
 router.delete('/:id', async (req, res) => {
     try {
-        // Primo passo: recupero il path del file dal DB, tramite una query SELECT
+        /* Recupero del percorso fisico per l'eliminazione dal disco */
         const [rows] = await db.query(
         'SELECT path_server FROM files WHERE id = ? AND utente_id = ?',
-        [req.params.id, req.user.id] // l'id del file viene dal paramtero dinamico dell'url, req.user viene dal middleware di autenticazione!
+        [req.params.id, req.user.id]
         );
 
-        // se la query non trova nulla, il file non esiste o non appartiene all'utente -> 404
         if (rows.length === 0) {
-        return res.status(404).json({ error: 'File non trovato' });
+            return res.status(404).json({ error: 'File non trovato o non autorizzato' });
         }
 
-        // Secondo passo: elimino il file dal disco
-        // fs.unlinkSync elimina fisicamente il file dal disco, indicando il suo percorso. unlink è il termine Unix per "elimina file", 
-        // Sync significa che è sincrono — blocca l'esecuzione finché il file non è stato eliminato.
+        /* Eliminazione fisica del file tramite modulo 'fs' */
         fs.unlinkSync(rows[0].path_server);
 
-        // Terzo passo: elimino l'elemento file dal DB, tramite query
+        /* Eliminazione del record dal database */
         await db.query(
         'DELETE FROM files WHERE id = ? AND utente_id = ?',
-        [req.params.id, req.user.id]// l'id del file viene dal paramtero dinamico dell'url, req.user viene dal middleware di autenticazione!
+        [req.params.id, req.user.id]
         );
 
-        // l'eliminazione ha avuto successo -> 200 (automatico con json()) e messaggio di successo
-        res.json({ message: 'File eliminato' });
-
-    // se la query fallisce per qualsiasi motivo, l'errore viene intercettato -> 500
+        res.json({ message: 'File eliminato con successo' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Errore interno' });
+        res.status(500).json({ error: 'Errore durante l\'eliminazione del file' });
     }
 });
 
-// esporto il Router specifico di files.js, rendendo questa rotta disponibile negli altri file (in modo da poterlo montare in server.js)
+/* PUT /api/files/:id — Permette di rinominare il file (solo a livello di DB) */
+router.put('/:id', async (req, res) => {
+    const { nome_file } = req.body;
+
+    if (!nome_file) {
+        return res.status(400).json({ error: 'Il nuovo nome del file è obbligatorio' });
+    }
+
+    try {
+        /* 
+           Aggiorniamo la colonna 'nome_originale'.
+           Non rinominiamo il file fisico su disco per non rompere i riferimenti.
+        */
+        const [result] = await db.query(
+            'UPDATE files SET nome_originale = ? WHERE id = ? AND utente_id = ?',
+            [nome_file, req.params.id, req.user.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'File non trovato o non autorizzato' });
+        }
+
+        res.json({ message: 'Nome file aggiornato con successo' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore interno durante la rinomina' });
+    }
+});
+
 module.exports = router;

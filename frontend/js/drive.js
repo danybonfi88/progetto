@@ -8,7 +8,6 @@
 
 /* ------------------------------------------------------------
    PROTEZIONE PAGINA E INIZIALIZZAZIONE NAVBAR
-   Stesso pattern di calendario.js.
    ------------------------------------------------------------ */
 if (!localStorage.getItem('token')) {
     window.location.href = 'index.html';
@@ -43,17 +42,13 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 
 /* ------------------------------------------------------------
    STATO DELL'APPLICAZIONE
-   tuttiIFile contiene tutti i file caricati dall'API —
-   filtriamo localmente per materia senza ricaricare dal server.
-   fileSelezionato tiene il riferimento al File object scelto
-   dall'utente prima di confermare l'upload.
    ------------------------------------------------------------ */
 let tuttiIFile    = [];
 let tutteLeMaterie = [];
 let tuttiIGruppi  = [];
-let filtromateria  = ''; /* id materia selezionata, '' = tutti */
-let fileSelezionato = null; /* File object selezionato dall'utente */
-let fileEliminaId   = null; /* id del file da eliminare */
+let filtromateria  = ''; 
+let fileSelezionato = null; 
+let fileEliminaId   = null; 
 
 
 /* ------------------------------------------------------------
@@ -81,6 +76,13 @@ const filePreviewNome    = document.getElementById('file-preview-nome');
 const filePreviewSize    = document.getElementById('file-preview-size');
 const filePreviewIcona   = document.getElementById('file-preview-icona');
 
+const modalRinomina = document.getElementById('modal-rinomina');
+const modalRinominaClose = document.getElementById('modal-rinomina-close');
+const formRinomina = document.getElementById('form-rinomina');
+const rinominaInput = document.getElementById('rinomina-nome');
+const btnRinominaAnnulla = document.getElementById('btn-rinomina-annulla');
+let fileInModificaId = null;
+
 /* Modal elimina */
 const modalElimina       = document.getElementById('modal-elimina');
 const modalEliminaClose  = document.getElementById('modal-elimina-close');
@@ -93,40 +95,26 @@ const toastContainer = document.getElementById('toast-container');
 
 /* ------------------------------------------------------------
    UPLOAD FILE — APERTURA FILE PICKER
-   Quando l'utente clicca su "Carica file", attiviamo
-   programmaticamente l'input file nascosto. Questo ci permette
-   di usare il nostro bottone stilizzato invece del brutto
-   input file nativo del browser.
    ------------------------------------------------------------ */
 btnUpload.addEventListener('click', () => {
     inputFile.click();
 });
 
-/* Quando l'utente seleziona un file dal file picker,
-   mostriamo il modal di conferma con l'anteprima del file */
 inputFile.addEventListener('change', () => {
     const file = inputFile.files[0];
     if (!file) return;
 
     fileSelezionato = file;
 
-    /* Mostriamo l'anteprima nel modal — nome, dimensione, icona */
     filePreviewNome.textContent  = file.name;
     filePreviewSize.textContent  = formattaDimensione(file.size);
     filePreviewIcona.textContent = getIconaFile(file.type);
 
     modalUpload.classList.add('active');
-
-    /* Resettiamo l'input file così se l'utente annulla
-       e riprova a caricare lo stesso file, l'evento change
-       si attiva di nuovo */
     inputFile.value = '';
 });
 
 
-/* ------------------------------------------------------------
-   MODAL UPLOAD — APERTURA E CHIUSURA
-   ------------------------------------------------------------ */
 function chiudiModalUpload() {
     modalUpload.classList.remove('active');
     fileSelezionato = null;
@@ -142,37 +130,30 @@ modalUpload.addEventListener('click', (e) => {
 
 /* ------------------------------------------------------------
    SUBMIT UPLOAD
-   Costruiamo un FormData con il file e i campi del form.
-   Non usiamo JSON perché i file non possono essere serializzati
-   in JSON — devono viaggiare come multipart/form-data.
-   api.uploadFile() usa requestFile() che non imposta
-   Content-Type manualmente, lasciando che il browser lo faccia
-   con il boundary corretto per multer.
    ------------------------------------------------------------ */
 formUpload.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!fileSelezionato) return;
+
+    if (!fileSelezionato) {
+        showToast('Seleziona un file da caricare', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileSelezionato);
+    formData.append('materia_id', uploadMateria.value);
+    formData.append('gruppo_id', uploadGruppo.value);
 
     setLoading('btn-upload-conferma', true);
 
     try {
-        /* FormData è il modo corretto per mandare file via fetch —
-           aggiungiamo il file e i campi opzionali */
-        const formData = new FormData();
-        formData.append('file',       fileSelezionato);
-        formData.append('materia_id', uploadMateria.value);
-        formData.append('gruppo_id',  uploadGruppo.value);
-
         await api.uploadFile(formData);
-
-        showToast('File caricato con successo', 'success');
+        showToast('File caricato con successo!', 'success');
         chiudiModalUpload();
-        /* Ricarichiamo la lista file dal server */
-        await caricaDati();
-
+        await caricaDati(); 
     } catch (err) {
         console.error(err);
-        showToast('Errore durante l\'upload', 'danger');
+        showToast(err.message || 'Errore nel caricamento del file', 'danger');
     } finally {
         setLoading('btn-upload-conferma', false);
     }
@@ -181,16 +162,25 @@ formUpload.addEventListener('submit', async (e) => {
 
 /* ------------------------------------------------------------
    FILTRI MATERIA
-   Aggiorniamo filtromateria e ridisegniamo la griglia —
-   non ricarichiamo dall'API, filtriamo tuttiIFile localmente.
    ------------------------------------------------------------ */
 driveFiltri.addEventListener('click', (e) => {
-    /* Verifichiamo che il click sia su un bottone filtro */
     if (!e.target.classList.contains('filtro-btn')) return;
 
-    /* Rimuoviamo .active da tutti e lo aggiungiamo al cliccato */
-    driveFiltri.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+    /* Reset visivo dei bottoni: rimuovo la classe active e i colori personalizzati */
+    driveFiltri.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+    });
+
+    /* Attivo il bottone selezionato */
     e.target.classList.add('active');
+    
+    /* Se il bottone ha un colore associato (materia), lo applichiamo */
+    if (e.target.dataset.color) {
+        e.target.style.backgroundColor = e.target.dataset.color;
+        e.target.style.color = 'white';
+    }
 
     filtromateria = e.target.dataset.materia;
     mostraFile();
@@ -199,74 +189,78 @@ driveFiltri.addEventListener('click', (e) => {
 
 /* ------------------------------------------------------------
    MOSTRA FILE
-   Filtra tuttiIFile per materia selezionata e aggiorna
-   la griglia — ogni file diventa una card cliccabile.
    ------------------------------------------------------------ */
 function mostraFile() {
-    let file = tuttiIFile;
+    filesLoading.hidden = true;
 
-    /* Filtro per materia — se filtromateria è vuoto mostriamo tutti */
-    if (filtromateria) {
-        file = file.filter(f => String(f.materia_id) === filtromateria);
-    }
-
-    if (file.length === 0) {
-        filesGrid.hidden  = true;
+    if (tuttiIFile.length === 0) {
+        filesGrid.hidden = true;
         filesEmpty.hidden = false;
         return;
     }
 
-    filesGrid.hidden  = false;
+    filesGrid.hidden = false;
     filesEmpty.hidden = true;
 
-    filesGrid.innerHTML = file.map(f => {
-        const icona      = getIconaFile(f.tipo_mime);
-        const dimensione = formattaDimensione(f.dimensione_bytes);
-        const data       = new Date(f.data_upload).toLocaleDateString('it-IT', {
-            day:   '2-digit',
-            month: 'short',
-            year:  'numeric'
-        });
+    /* 
+       FILTRAGGIO:
+       Semplifichiamo il confronto convertendo l'ID in stringa per evitare errori 
+       di tipo tra numeri (dal DB) e stringhe (dal dataset HTML).
+    */
+    const filesFiltrati = tuttiIFile.filter(file => {
+        if (filtromateria === '') return true;
+        return String(file.materia_id) === filtromateria;
+    });
 
-        /* Badge materia con il colore della materia stessa */
-        const materiaBadge = f.materia_nome
-            ? `<span class="file-card-materia" style="background: ${f.materia_colore}22; color: ${f.materia_colore}">
-                 ${f.materia_nome}
-               </span>`
-            : '';
+    if (filesFiltrati.length === 0) {
+        filesGrid.hidden = true;
+        filesEmpty.hidden = false;
+        return;
+    }
 
-        /* Badge gruppo se il file è condiviso */
-        const gruppoBadge = f.gruppo_id
-            ? `<span class="file-card-gruppo">👥 Condiviso</span>`
-            : '';
-
-        return `
-            <div class="file-card" onclick="scaricaFile(${f.id}, '${f.nome_originale}')">
-                <button class="file-card-elimina" onclick="apriModalElimina(event, ${f.id})">🗑️</button>
-                <div class="file-card-icona">${icona}</div>
-                <div class="file-card-nome">${f.nome_originale}</div>
-                <div class="file-card-meta">
-                    <span>${dimensione}</span>
-                    <span>${data}</span>
+    filesGrid.innerHTML = filesFiltrati.map(file => `
+        <div class="file-card">
+            <div class="file-info">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">${file.nome_originale}</div>
+                    <div class="file-meta">${file.dimensione_bytes} bytes</div>
                 </div>
-                ${materiaBadge}
-                ${gruppoBadge}
             </div>
-        `;
-    }).join('');
+            <div class="file-actions">
+                <!-- NUOVO: Bottone Anteprima (Apre in nuova scheda) -->
+                <button class="btn btn-outline btn-sm" onclick="apriAnteprima(${file.id})" title="Apri anteprima">
+                    🔍
+                </button>
+                <!-- Bottone Download (Forza il salvataggio) -->
+                <button class="btn btn-outline btn-sm" onclick="scaricaFile(${file.id}, '${file.nome_originale}')" title="Scarica">
+                    📥
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="apriModalRinomina(${file.id}, '${file.nome_originale}')" title="Rinomina">
+                    ✏️
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="apriModalElimina(event, ${file.id})" title="Elimina">
+                    🗑️
+                </button>
+            </div>
+        </div>
+    `).join('');
 }
 
+/* 
+   FUNZIONE APRI ANTEPRIMA
+   Chiama l'endpoint /view per mostrare il file senza scaricarlo.
+*/
+function apriAnteprima(id) {
+    const token = localStorage.getItem('token');
+    window.open(`/api/files/${id}/view?token=${token}`, '_blank');
+}
 
-/* ------------------------------------------------------------
-   DOWNLOAD FILE
-   Il server non espone i file staticamente — per scaricarli
-   dobbiamo fare una richiesta autenticata e usare l'API.
-   Per semplicità apriamo una nuova tab con l'URL del backend.
-   In un progetto reale si userebbe un endpoint dedicato
-   che serve il file con l'header Content-Disposition.
-   ------------------------------------------------------------ */
+/* 
+   FUNZIONE SCARICA FILE
+   Chiama l'endpoint /download per forzare il salvataggio sul PC.
+*/
 function scaricaFile(id, nomeOriginale) {
-    /* Apriamo l'endpoint di download in una nuova tab */
     const token = localStorage.getItem('token');
     window.open(`/api/files/${id}/download?token=${token}`, '_blank');
 }
@@ -276,8 +270,6 @@ function scaricaFile(id, nomeOriginale) {
    MODAL ELIMINA FILE
    ------------------------------------------------------------ */
 function apriModalElimina(e, id) {
-    /* stopPropagation impedisce che il click si propaghi
-       alla card sottostante attivando il download */
     e.stopPropagation();
     fileEliminaId = id;
     modalElimina.classList.add('active');
@@ -315,13 +307,9 @@ btnEliminaConferma.addEventListener('click', async () => {
 
 /* ------------------------------------------------------------
    CARICAMENTO DATI
-   Carica file, materie e gruppi in parallelo.
-   Le materie servono per i filtri e il select del modal.
-   I gruppi servono per il select di condivisione nel modal.
    ------------------------------------------------------------ */
 async function caricaDati() {
     try {
-        /* Recuperiamo file, materie e gruppi per popolare la pagina e i filtri */
         const [files, materie, gruppi] = await Promise.all([
             api.getFiles(),
             api.getMaterie(),
@@ -332,21 +320,16 @@ async function caricaDati() {
         tutteLeMaterie = materie;
         tuttiIGruppi   = gruppi;
 
-        /* Generiamo i bottoni dei filtri per materia in base ai dati ricevuti */
         driveFiltri.innerHTML = `<button class="filtro-btn active" data-materia="">Tutti</button>`;
         materie.forEach(m => {
             const btn = document.createElement('button');
             btn.className        = 'filtro-btn';
             btn.dataset.materia  = m.id;
+            btn.dataset.color    = m.colore; // Salviamo il colore per usarlo al click
             btn.textContent      = m.nome;
-            btn.addEventListener('click', () => {
-                btn.style.background  = m.colore;
-                btn.style.borderColor = m.colore;
-            });
             driveFiltri.appendChild(btn);
         });
 
-        /* Popoliamo i selettori nel modal di upload (materia e gruppo di condivisione) */
         uploadMateria.innerHTML = '<option value="">Nessuna materia</option>';
         materie.forEach(m => {
             const opt       = document.createElement('option');
@@ -358,41 +341,69 @@ async function caricaDati() {
         uploadGruppo.innerHTML = '<option value="">Solo per me</option>';
         gruppi.forEach(g => {
             const opt       = document.createElement('option');
-            opt.value       = g.id;
-            opt.textContent = g.nome;
-            uploadGruppo.appendChild(opt);
+        opt.value       = g.id;
+        opt.textContent = g.nome;
+        uploadGruppo.appendChild(opt);
         });
 
-        /* Infine, generiamo la griglia dei file effettivamente caricati */
         mostraFile();
 
     } catch (err) {
         console.error(err);
         showToast('Errore nel caricamento dei file', 'danger');
     } finally {
-        /* ------------------------------------------------------------
-           SCOMPARSA INDICATORE DI CARICAMENTO:
-           Nascondiamo lo spinner principale del drive. Questo deve 
-           accadere sempre per evitare che l'utente rimanga bloccato 
-           da una rotellina infinita in caso di errore del server.
-           ------------------------------------------------------------ */
         filesLoading.hidden = true;
     }
 }
+
+/* 
+   GESTIONE RINOMINA FILE
+*/
+function apriModalRinomina(id, nomeAttuale) {
+    fileInModificaId = id;
+    rinominaInput.value = nomeAttuale;
+    modalRinomina.classList.add('active');
+}
+
+function chiudiModalRinomina() {
+    modalRinomina.classList.remove('active');
+    fileInModificaId = null;
+}
+
+modalRinominaClose.addEventListener('click', chiudiModalRinomina);
+btnRinominaAnnulla.addEventListener('click', chiudiModalRinomina);
+
+formRinomina.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nuovoNome = rinominaInput.value.trim();
+
+    if (!nuovoNome) return;
+
+    setLoading('btn-rinomina-salva', true);
+
+    try {
+        await api.aggiornaFile(fileInModificaId, { nome_file: nuovoNome });
+        showToast('File rinominato con successo', 'success');
+        chiudiModalRinomina();
+        await caricaDati(); 
+    } catch (err) {
+        showToast(err.message || 'Errore durante la rinomina', 'danger');
+    } finally {
+        setLoading('btn-rinomina-salva', false);
+    }
+});
 
 
 /* ------------------------------------------------------------
    HELPERS
    ------------------------------------------------------------ */
 
-/* Converte i byte in una stringa leggibile */
 function formattaDimensione(bytes) {
     if (!bytes) return '';
     if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
     return `${Math.round(bytes / 1024)} KB`;
 }
 
-/* Restituisce un'emoji in base al tipo MIME */
 function getIconaFile(mime) {
     if (!mime) return '📄';
     if (mime.startsWith('image/'))       return '🖼️';
@@ -401,18 +412,19 @@ function getIconaFile(mime) {
     if (mime.includes('spreadsheet') || mime.includes('excel')) return '📊';
     if (mime.includes('presentation') || mime.includes('powerpoint')) return '📑';
     if (mime.startsWith('video/'))       return '🎬';
-    if (mime.startsWith('audio/'))       return '🎵';
+    if (mime.startsWith('audio/'))      return '🎵';
     if (mime.includes('zip') || mime.includes('rar')) return '🗜️';
     return '📄';
 }
 
 function setLoading(btnId, loading) {
     const btn     = document.getElementById(btnId);
+    if (!btn) return;
     const text    = btn.querySelector('.btn-text');
     const spinner = btn.querySelector('.spinner');
     btn.disabled   = loading;
-    text.hidden    = loading;
-    spinner.hidden = !loading;
+    if (text) text.hiddenS = loading;
+    if (spinner) spinner.hidden = !loading;
 }
 
 function showToast(message, type = '') {
@@ -426,8 +438,4 @@ function showToast(message, type = '') {
     }, 3000);
 }
 
-
-/* ------------------------------------------------------------
-   AVVIO
-   ------------------------------------------------------------ */
 caricaDati();

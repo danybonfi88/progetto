@@ -29,7 +29,7 @@
         <a href="dashboard.html"  class="navbar-link" data-page="dashboard">Dashboard</a>
         <a href="calendario.html" class="navbar-link" data-page="calendario">Calendario</a>
         <a href="drive.html"      class="navbar-link" data-page="drive">Drive</a>
-        <a href="gruppi.html"     class="navbar-link" data-page="gruppi">Gruppi</a>
+        <a href="gruppi.html"      class="navbar-link" data-page="gruppi">Gruppi</a>
         <a href="materie.html"    class="navbar-link" data-page="materie">Materie</a>
         <a href="quiz.html"       class="navbar-link" data-page="quiz">Quiz</a>
         <a href="chat.html"       class="navbar-link" data-page="chat">Chat AI</a>
@@ -155,6 +155,34 @@
     </div>
   </div>
 
+  <!-- MODAL RINOMINA FILE
+       Permette di cambiare il nome visualizzato del file senza 
+       modificare il file fisico sul server. -->
+  <div class="modal-overlay" id="modal-rinomina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Rinomina file</h3>
+        <button class="modal-close" id="modal-rinomina-close">✕</button>
+      </div>
+      <form id="form-rinomina">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="rinomina-nome">Nuovo nome file</label>
+            <input type="text" id="rinomina-nome" class="form-input" required>
+            <span class="error-text" id="rinomina-error"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-rinomina-annulla">Annulla</button>
+          <button type="submit" class="btn btn-primary" id="btn-rinomina-salva">
+            <span class="btn-text">Salva nome</span>
+            <span class="spinner" hidden></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <!-- MODAL CONFERMA ELIMINAZIONE -->
   <div class="modal-overlay" id="modal-elimina">
@@ -183,4 +211,4 @@
   <script src="js/drive.js"></script>
 
 </body>
-</html>
+</html
