@@ -341,3 +341,16 @@
     justify-content: center;
     border-radius: var(--radius-sm);
 }
+
+/* ----------------------------------------------------------------------------
+   SISTEMAZIONE STILE FILTRI DRIVE
+   Senza l'uso di !important, permettiamo agli stili JavaScript (i colori delle 
+   materie) di sovrascrivere questo aspetto, mentre il tasto "Tutti" 
+   manterrà l'aspetto outline (bianco con bordo blu).
+   ---------------------------------------------------------------------------- */
+.filtro-btn.active {
+    background-color: #ffffff; /* Sfondo bianco per il tasto "Tutti" */
+    color: var(--primary);      /* Testo blu */
+    border-color: var(--primary); /* Bordo blu */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
