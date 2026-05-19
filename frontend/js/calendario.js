@@ -413,7 +413,17 @@ function apriModalModifica(evento) {
     /* Pre-compiliamo tutti i campi con i dati esistenti */
     campoTitolo.value     = evento.titolo;
     campoTipo.value       = evento.tipo;
-    campoData.value       = evento.data;
+    
+    /* 
+       SISTEMAZIONE DATA DEFINITIVA:
+       Poiché ora il backend invia la data come stringa pura (es. "2024-10-27") 
+       grazie a DATE_FORMAT, non c'è più alcun rischio di shifting.
+       Assegniamo semplicemente il valore al campo input.
+    */
+    if (evento.data) {
+        campoData.value = evento.data; 
+    }
+
     campoOra.value        = evento.ora        || '';
     campoMateria.value    = evento.materia_id  || '';
     campoNote.value       = evento.note        || '';
@@ -421,7 +431,6 @@ function apriModalModifica(evento) {
 
     modalEvento.classList.add('active');
 }
-
 
 /* ------------------------------------------------------------
    SUBMIT FORM EVENTO

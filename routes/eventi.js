@@ -17,17 +17,18 @@ router.use(auth);
 router.get('/', async (req, res) => {
     try {
         // come solito, uso il metodo query con la scrittura [rows], per estrarre solo le righe, senza metadata
-        /* COSA ESTRAGGO: estraggo tutti gli attributi di eventi, nome e colore materia */
-        /* DA DOVE ESTRAGGO: dalla tabella eventi, collegata alla tabella materie in base all'id materia.
-        LEFT JOIN -> se le righe di eventi non hanno corrispondenza in materie, gli attributi di materie sono impostati a null*/
-        /* CONDIZIONE: se vale una delle due condizioni 
-        - e.utente_id = ? — l'evento è stato creato dall'utente loggato
-        - e.gruppo_id IN (...) — l'evento appartiene a un gruppo di cui l'utente fa parte */
-        /* ORDINE: ordino per data degli eventi, crescente */
+        /* 
+           SISTEMAZIONE DATA:
+           Invece di usare e.*, specifichiamo i campi.
+           Usiamo DATE_FORMAT(e.data, '%Y-%m-%d') per costringere MySQL a inviare 
+           la data come STRINGA (es: "2024-10-27") e non come oggetto Date.
+           Questo impedisce a JavaScript di applicare il fuso orario e sposta la data indietro di un giorno.
+        */
         const [rows] = await db.query(`
-        SELECT e.*,
-                m.nome  AS materia_nome,
-                m.colore AS materia_colore
+        SELECT e.id, e.titolo, e.tipo, e.ora, e.note, e.completato, e.utente_id, e.gruppo_id,
+               DATE_FORMAT(e.data, '%Y-%m-%d') AS data,
+               m.nome  AS materia_nome,
+               m.colore AS materia_colore
         FROM eventi e
         LEFT JOIN materie m ON e.materia_id = m.id
         WHERE e.utente_id = ?
