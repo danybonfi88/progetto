@@ -55,6 +55,7 @@ let quizCorrente    = null;  /* oggetto quiz aperto nel dettaglio */
 let domandeCorrente = [];    /* domande del quiz corrente */
 let quizEliminaId   = null;
 let quizInModifica   = null;
+let filtromateria = ''; /* ID della materia selezionata, '' = tutti */
 
 /* Variabili di esecuzione quiz */
 let domandeQuiz     = [];    /* domande mescolate per l'esecuzione */
@@ -179,6 +180,10 @@ function mostraVista(vista) {
    VISTA LISTA — mostra i quiz
    Aggiornata per permettere l'avvio rapido del quiz senza passare per il dettaglio.
 */
+/* 
+   VISTA LISTA — mostra i quiz
+   SISTEMAZIONE: Ora include la logica di filtraggio per materia.
+*/
 function mostraQuiz() {
     quizLoading.hidden = true;
 
@@ -188,12 +193,38 @@ function mostraQuiz() {
         return;
     }
 
+    /* 
+       LOGICA DI FILTRAGGIO:
+       Creiamo una lista temporanea di quiz che rispettano il filtro.
+       Se filtromateria è vuoto, passano tutti.
+       Altrimenti, passano solo quelli con l'ID materia corrispondente.
+    */
+    const quizFiltrati = tuttiIQuiz.filter(quiz => {
+        if (filtromateria === '') return true;
+        return String(quiz.materia_id) === filtromateria;
+    });
+
+    /* Se dopo il filtro non resta nulla, mostriamo lo stato vuoto */
+    if (quizFiltrati.length === 0) {
+        quizGrid.hidden  = true;
+        quizEmpty.hidden = true; // Nascondiamo l'empty generale
+        
+        /* Opzionale: potresti aggiungere un messaggio "Nessun quiz in questa materia" */
+        quizEmpty.innerHTML = `
+            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-title">Nessun quiz trovato</div>
+            <div class la="empty-state-text">Non ci sono quiz per questa materia.</div>
+        `;
+        quizEmpty.hidden = false;
+        return;
+    }
+
     quizGrid.hidden  = false;
     quizEmpty.hidden = true;
 
-    quizGrid.innerHTML = tuttiIQuiz.map(quiz => `
+    /* Generiamo l'HTML usando la lista filtrata invece di tuttiIQuiz */
+    quizGrid.innerHTML = quizFiltrati.map(quiz => `
         <div class="quiz-card">
-            <!-- Contenitore principale della card: al click apre il dettaglio -->
             <div class="quiz-card-main" onclick="apriDettaglio(${quiz.id})">
                 <div class="quiz-card-titolo">${quiz.titolo}</div>
                 <div class="quiz-card-footer">
@@ -205,8 +236,6 @@ function mostraQuiz() {
                         : ''}
                 </div>
             </div>
-            <!-- NUOVO: Bottone di avvio rapido. 
-                 L'evento onclick è separato per evitare che si apra anche il dettaglio -->
             <button class="btn btn-primary btn-avvia-rapido" onclick="avviaQuizDiretto(event, ${quiz.id})">
                 ▶ Avvia
             </button>
@@ -397,6 +426,15 @@ function apriModalQuiz(quiz = null) {
 function chiudiModalQuiz() {
     modalQuiz.classList.remove('active');
 }
+
+/* 
+   SISTEMAZIONE BUG CREAZIONE QUIZ:
+   Colleghiamo il bottone "+ Nuovo quiz" alla funzione di apertura del modal.
+   Senza questo listener, il click sul bottone non produce alcun effetto.
+*/
+btnNuovoQuiz.addEventListener('click', () => {
+    apriModalQuiz(); // Chiamiamo la funzione senza argomenti per attivare la modalità "CREAZIONE"
+});
 
 /* Quando clicco su "Modifica quiz", passiamo l'oggetto quizCorrente alla funzione per pre-compilare i campi */
 btnModificaQuiz.addEventListener('click', () => {
@@ -627,14 +665,23 @@ function pausaQuiz() {
         domandeMescolate: domandeQuiz
     };
 
-    /* Salviamo l'oggetto convertendolo in stringa JSON. 
-       Usiamo una chiave unica per ogni quiz (es: 'quiz_progress_12') */
     localStorage.setItem(`quiz_progress_${quizCorrente.id}`, JSON.stringify(stato));
-    
     showToast('Progresso salvato! Potrai riprendere da qui.', 'success');
     
-    /* Ritorniamo alla vista dettaglio del quiz */
+    /* 
+       SISTEMAZIONE VISTA:
+       Non basta cambiare vista. Dobbiamo assicurarci che i contenuti 
+       della vista dettaglio (titolo e lista domande) siano visibili.
+    */
     mostraVista('dettaglio');
+    
+    /* 
+       Richiamiamo mostraDomande() per forzare il browser a:
+       1. Impostare domandeLoading.hidden = true
+       2. Impostare domandeList.hidden = false (se ci sono domande)
+       3 la renderizzare l'HTML della lista.
+    */
+    mostraDomande();
 }
 
 /* Colleghiamo la funzione al bottone Pausa */
@@ -890,13 +937,25 @@ function mostraFinale() {
 btnRiprova.addEventListener('click', avviaQuiz);
 
 /* Torna al dettaglio del quiz */
+/* 
+   SISTEMAZIONE BUG TORNA AL DETTAGLIO:
+   Dopo la fine del quiz, torniamo al dettaglio e riattiviamo 
+   la renderizzazione della lista domande.
+*/
 btnTornaDettaglio.addEventListener('click', () => {
     mostraVista('dettaglio');
+    mostraDomande(); // Ripristina la visibilità della lista domande
 });
 
 /* Annulla il quiz e torna al dettaglio */
+/* 
+   SISTEMAZIONE BUG ANNULLA:
+   Quando l'utente annulla, torniamo al dettaglio e forziamo 
+   la visualizzazione della lista domande per evitare la schermata bianca.
+*/
 btnQuizAnnulla.addEventListener('click', () => {
     mostraVista('dettaglio');
+    mostraDomande(); // Ripristina la visibilità della lista domande
 });
 
 /* ------------------------------------------------------------
@@ -981,13 +1040,18 @@ async function caricaDati() {
         tuttiIQuiz     = quiz;
         tutteLeMaterie = materie;
 
-        /* Popoliamo il selettore della materia nel modal "Nuovo Quiz" */
-        quizMateria.innerHTML = '<option value="">Nessuna materia</option>';
+        /* --- AGGIUNTA: POPOLAMENTO FILTRI MATERIE --- */
+        const quizFiltri = document.querySelector('.quiz-filtri');
+        quizFiltri.innerHTML = `<button class="filtro-btn active" data-materia="">Tutti</button>`;
+        
         materie.forEach(m => {
-            const opt       = document.createElement('option');
-            opt.value       = m.id;
-            opt.textContent = m.nome;
-            quizMateria.appendChild(opt);
+            const btn = document.createElement('button');
+            btn.className        = 'filtro-btn';
+            btn.dataset.materia  = m.id;
+            /* SALVAGGIO COLORE: Non lo applichiamo subito, lo salviamo nel dataset */
+            btn.dataset.color    = m.colore; 
+            btn.textContent      = m.nome;
+            quizFiltri.appendChild(btn);
         });
 
         /* Mostriamo la griglia dei quiz caricati */
@@ -1029,6 +1093,42 @@ function showToast(message, type = '') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+/* 
+   GESTIONE CLICK FILTRI QUIZ
+   Sincronizza la selezione visiva con la variabile di stato 
+   e aggiorna la griglia dei quiz.
+*/
+document.querySelector('.quiz-filtri').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('filtro-btn')) return;
+
+    /* 
+       SISTEMAZIONE COLORI:
+       Rimuoviamo la classe 'active' e resettiamo gli stili inline di TUTTI i bottoni.
+       Questo assicura che i bottoni non restino colorati dopo il click.
+    */
+    document.querySelectorAll('.quiz-filtri .filtro-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.backgroundColor = ''; // Torna al colore base del CSS
+        btn.style.color = '';           // Torna al colore testo base
+    });
+
+    /* Attiviamo il bottone cliccato */
+    e.target.classList.add('active');
+
+    /* 
+       Se il bottone ha un colore associato (quindi è una materia e non il tasto "Tutti"),
+       applichiamo il colore salvato nel dataset.
+    */
+    if (e.target.dataset.color) {
+        e.target.style.backgroundColor = e.target.dataset.color;
+        e.target.style.color = 'white'; // Testo bianco per leggibilità su colori scuri
+    }
+
+    /* Aggiorniamo l'ID della materia selezionata e ridisegniamo la griglia */
+    filtromateria = e.target.dataset.materia;
+    mostraQuiz();
+});
 
 
 /* ------------------------------------------------------------
