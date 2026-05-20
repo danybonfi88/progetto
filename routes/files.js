@@ -157,16 +157,23 @@ router.get('/:id/download', async (req, res) => {
 router.use(auth);
 
 
-/* GET /api/files — Recupera l'elenco dei file accessibili all'utente */
+// GET /api/files
 router.get('/', async (req, res) => {
     try {
-        /* Recupero dei file dell'utente o dei suoi gruppi con JOIN per i dati della materia */
+        /* 
+           SISTEMAZIONE QUERY:
+           Aggiungiamo un secondo LEFT JOIN per collegare la tabella 'files' alla tabella 'gruppi'.
+           In questo modo l'API restituirà non solo l'id del gruppo, 
+           ma anche il suo nome (estratto come 'gruppo_nome').
+        */
         const [rows] = await db.query(`
         SELECT f.*,
                 m.nome AS materia_nome,
-                m.colore AS materia_colore
+                m.colore AS materia_colore,
+                g.nome AS gruppo_nome
         FROM files f
         LEFT JOIN materie m ON f.materia_id = m.id
+        LEFT JOIN gruppi g ON f.gruppo_id = g.id
         WHERE f.utente_id = ?
             OR f.gruppo_id IN (
                 SELECT gruppo_id
@@ -179,7 +186,7 @@ router.get('/', async (req, res) => {
         res.json(rows);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Errore interno durante il recupero dei file' });
+        res.status(500).json({ error: 'Errore interno' });
     }
 });
 
@@ -252,32 +259,35 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-/* PUT /api/files/:id — Permette di rinominare il file (solo a livello di DB) */
+/* PUT /api/files/:id — Permette di cambiare il nome visualizzato e il gruppo di un file */
 router.put('/:id', async (req, res) => {
-    const { nome_file } = req.body;
+    /* Estraiamo sia il nuovo nome che l'eventuale nuovo gruppo dal body */
+    const { nome_file, gruppo_id } = req.body;
 
+    /* Validazione: il nome è obbligatorio per evitare file senza titolo */
     if (!nome_file) {
         return res.status(400).json({ error: 'Il nuovo nome del file è obbligatorio' });
     }
 
     try {
         /* 
-           Aggiorniamo la colonna 'nome_originale'.
-           Non rinominiamo il file fisico su disco per non rompere i riferimenti.
+           AGGIORNAMENTO DATABASE:
+           Aggiorniamo sia 'nome_originale' che 'gruppo_id'.
+           Il gruppo_id può essere null (se l'utente decide di rendere il file privato).
         */
         const [result] = await db.query(
-            'UPDATE files SET nome_originale = ? WHERE id = ? AND utente_id = ?',
-            [nome_file, req.params.id, req.user.id]
+            'UPDATE files SET nome_originale = ?, gruppo_id = ? WHERE id = ? AND utente_id = ?',
+            [nome_file, gruppo_id || null, req.params.id, req.user.id]
         );
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'File non trovato o non autorizzato' });
         }
 
-        res.json({ message: 'Nome file aggiornato con successo' });
+        res.json({ message: 'File aggiornato con successo' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Errore interno durante la rinomina' });
+        res.status(500).json({ error: 'Errore interno del server durante l\'aggiornamento' });
     }
 });
 

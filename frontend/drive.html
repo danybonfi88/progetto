@@ -155,27 +155,35 @@
     </div>
   </div>
 
-  <!-- MODAL RINOMINA FILE
-       Permette di cambiare il nome visualizzato del file senza 
-       modificare il file fisico sul server. -->
+  <!-- MODAL MODIFICA FILE
+       Permette di cambiare il nome e l'assegnazione del gruppo al file. -->
   <div class="modal-overlay" id="modal-rinomina">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">Rinomina file</h3>
-        <button class="modal-close" id="modal-rinomina-close">✕</button>
+        <h3 class="modal-title">Modifica file</h3>
+        <button class la="modal-close" id="modal-rinomina-close">✕</button>
       </div>
       <form id="form-rinomina">
         <div class="modal-body">
+          <!-- Campo Nome -->
           <div class="form-group">
-            <label for="rinomina-nome">Nuovo nome file</label>
+            <label for="rinomina-nome">Nome file</label>
             <input type="text" id="rinomina-nome" class="form-input" required>
             <span class="error-text" id="rinomina-error"></span>
+          </div>
+
+          <!-- NUOVO CAMPO: Selezione Gruppo -->
+          <div class="form-group">
+            <label for="rinomina-gruppo">Condividi con gruppo</label>
+            <select class="form-control" id="rinomina-gruppo">
+              <option value="">Solo per me</option>
+            </select>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" id="btn-rinomina-annulla">Annulla</button>
           <button type="submit" class="btn btn-primary" id="btn-rinomina-salva">
-            <span class="btn-text">Salva nome</span>
+            <span class="btn-text">Salva modifiche</span>
             <span class="spinner" hidden></span>
           </button>
         </div>
