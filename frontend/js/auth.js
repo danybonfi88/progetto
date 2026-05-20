@@ -133,36 +133,31 @@ formLogin.addEventListener('submit', async (e) => {
     setLoading('btn-login', true);
 
     try {
-        /* Chiamata all'API di login tramite api.js —
-           non scriviamo fetch() direttamente qui perché
-           api.js centralizza headers e BASE_URL */
+        /* Chiamata all'API di login tramite api.js */
         const data = await api.login(email, password);
 
         if (data.token) {
-            /* Salviamo il token nel localStorage — così rimane
-               disponibile anche dopo aver chiuso il browser.
-               Il token viene letto da api.js ad ogni richiesta
-               e aggiunto all'header Authorization */
             localStorage.setItem('token', data.token);
-            /* Salviamo anche il nome per mostrarlo nella navbar */
             localStorage.setItem('nome', data.nome);
-
-            /* Redirect alla dashboard — il login è completato */
             window.location.href = 'dashboard.html';
         } else {
-            /* Il server ha risposto senza token — credenziali errate */
+            /* Questo caso è raro perché api.js solitamente lancia un'eccezione per i 401,
+               ma lo teniamo per sicurezza */
             showFormError(loginError, data.error || 'Credenziali non valide');
-            
-            /* AGGIUNTA: Mostriamo anche un toast per dare un feedback più forte */
             showToast(data.error || 'Credenziali non valide', 'danger');
         }
 
     } catch (err) {
-        /* Errore di rete o server non raggiungibile */
-        showFormError(loginError, 'Errore di connessione. Riprova.');
+        /* 
+           SISTEMAZIONE BUG MESSAGGIO:
+           Invece di scrivere un messaggio fisso di "Errore di connessione", 
+           estraiamo il messaggio reale inviato dal server (err.message).
+           Se l'errore è un crash di rete senza messaggio, usiamo il fallback.
+        */
+        const messaggioErrore = err.message || 'Errore di connessione. Riprova.';
+        showFormError(loginError, messaggioErrore);
+        showToast(messaggioErrore, 'danger');
     } finally {
-        /* finally viene eseguito sempre — sia in caso di successo
-           che di errore. Serve per ripristinare il bottone */
         setLoading('btn-login', false);
     }
 });
@@ -184,30 +179,27 @@ formReg.addEventListener('submit', async (e) => {
 
     setLoading('btn-register', true);
 
-    try {
+     try {
         const data = await api.register(nome, email, password);
 
         if (data.message) {
-            /* Registrazione avvenuta — mostriamo un toast di successo
-               e switchiamo automaticamente alla tab di login */
             showToast('Registrazione completata! Ora accedi.', 'success');
-
-            /* Simuliamo il click sulla tab login per mostrare
-               il form di login con i dati già inseriti */
             tabs[0].click();
-
-            /* Pre-compiliamo l'email nel form di login —
-               piccola comodità per l'utente che non deve
-               reinserirla */
             loginEmail.value = email;
             loginPassword.focus();
-
         } else {
             showFormError(regError, data.error || 'Errore durante la registrazione');
         }
 
     } catch (err) {
-        showFormError(regError, 'Errore di connessione. Riprova.');
+        /* 
+           SISTEMAZIONE BUG MESSAGGIO:
+           Anche qui, usiamo err.message per mostrare errori specifici 
+           (es. "Email già registrata") invece di un generico errore di connessione.
+        */
+        const messaggioErrore = err.message || 'Errore di connessione. Riprova.';
+        showFormError(regError, messaggioErrore);
+        showToast(messaggioErrore, 'danger');
     } finally {
         setLoading('btn-register', false);
     }
